@@ -217,9 +217,9 @@ function OverviewTab() {
         />
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5" data-testid="card-recent-activity">
+      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5" data-testid="card-history">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
+          <h3 className="text-sm font-semibold text-white">History</h3>
           <span className="text-[10px] text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full flex items-center gap-1" data-testid="badge-live">
             <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
             Live

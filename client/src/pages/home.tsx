@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -64,116 +64,109 @@ interface FileItemProps {
   onDownload: (code: string) => void;
   onDelete: (id: string) => void;
   copiedCode: string | null;
+  isHovered: boolean;
+  onMouseEnter: () => void;
 }
 
-function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode }: FileItemProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  
-  const springConfig = { damping: 25, stiffness: 200 };
-  const smoothX = useSpring(mouseX, springConfig);
-  const smoothY = useSpring(mouseY, springConfig);
-  
-  const [isHovered, setIsHovered] = useState(false);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    mouseX.set(e.clientX - rect.left);
-    mouseY.set(e.clientY - rect.top);
-  };
-
+function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovered, onMouseEnter }: FileItemProps) {
   return (
-    <motion.div
-      ref={containerRef}
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      data-testid={`uploaded-file-${file.id}`}
-      className={`relative bg-zinc-900/50 border p-3 flex items-center gap-3 overflow-hidden cursor-pointer transition-all duration-200 ${
-        file.existsInStorage 
-          ? 'border-zinc-800 hover:border-zinc-600' 
-          : 'border-red-900/50 hover:border-red-700/50'
-      }`}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+    <div
+      className="relative"
+      onMouseEnter={onMouseEnter}
     >
-      <motion.div
-        className="absolute pointer-events-none rounded-full"
-        style={{
-          x: smoothX,
-          y: smoothY,
-          width: 120,
-          height: 120,
-          marginLeft: -60,
-          marginTop: -60,
-          background: file.existsInStorage 
-            ? 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%)' 
-            : 'radial-gradient(circle, rgba(239,68,68,0.12) 0%, rgba(239,68,68,0) 70%)',
-          opacity: isHovered ? 1 : 0,
-          transition: 'opacity 0.2s ease-out',
-        }}
-      />
-      
-      {file.existsInStorage ? (
-        <FileIcon size={16} className="text-zinc-500 shrink-0 z-10" />
-      ) : (
-        <AlertTriangle size={16} className="text-red-500 shrink-0 z-10" />
+      {isHovered && (
+        <motion.div
+          layoutId="file-list-hover-bg"
+          className={`absolute inset-0 rounded-md ${
+            file.existsInStorage 
+              ? 'bg-zinc-800/60' 
+              : 'bg-red-900/20'
+          }`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 350, 
+            damping: 25,
+            duration: 0.2
+          }}
+        />
       )}
       
-      <div className="flex-1 min-w-0 z-10">
-        <div className="flex items-center gap-2">
-          <p className={`text-xs truncate ${file.existsInStorage ? 'text-zinc-300' : 'text-red-400'}`}>
-            {file.originalName}
-          </p>
-          {!file.existsInStorage && (
-            <Badge 
-              variant="destructive" 
-              className="text-[8px] px-1.5 py-0 h-4 uppercase tracking-wider font-bold animate-pulse"
-              data-testid={`deleted-badge-${file.id}`}
-            >
-              DELETED
-            </Badge>
-          )}
-        </div>
-        <p className="text-[10px] text-zinc-600">
-          {file.existsInStorage ? file.sizeFormatted : 'File no longer exists in storage'}
-        </p>
-      </div>
-      
-      <div className="flex items-center gap-2 shrink-0 z-10">
-        {file.existsInStorage && (
-          <>
-            <button
-              onClick={() => onCopyCode(file.shareCode)}
-              className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors"
-              data-testid={`copy-code-${file.id}`}
-            >
-              {copiedCode === file.shareCode ? (
-                <><Check size={10} className="text-green-500" /> Copied</>
-              ) : (
-                <><Copy size={10} /> {file.shareCode}</>
-              )}
-            </button>
-            <button
-              onClick={() => onDownload(file.shareCode)}
-              className="p-1 text-zinc-500 hover:text-white transition-colors"
-              data-testid={`download-${file.id}`}
-            >
-              <Download size={14} />
-            </button>
-          </>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        data-testid={`uploaded-file-${file.id}`}
+        className={`relative z-10 bg-zinc-900/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
+          file.existsInStorage 
+            ? 'border-zinc-800' 
+            : 'border-red-900/50'
+        } ${isHovered ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''}`}
+      >
+        {file.existsInStorage ? (
+          <FileIcon size={16} className={`shrink-0 transition-colors ${isHovered ? 'text-zinc-300' : 'text-zinc-500'}`} />
+        ) : (
+          <AlertTriangle size={16} className="text-red-500 shrink-0" />
         )}
-        <button
-          onClick={() => onDelete(file.id)}
-          className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
-          data-testid={`delete-${file.id}`}
-        >
-          <Trash2 size={14} />
-        </button>
-      </div>
-    </motion.div>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className={`text-xs truncate transition-colors ${
+              file.existsInStorage 
+                ? (isHovered ? 'text-white' : 'text-zinc-300')
+                : 'text-red-400'
+            }`}>
+              {file.originalName}
+            </p>
+            {!file.existsInStorage && (
+              <Badge 
+                variant="destructive" 
+                className="text-[8px] px-1.5 py-0 h-4 uppercase tracking-wider font-bold animate-pulse"
+                data-testid={`deleted-badge-${file.id}`}
+              >
+                DELETED
+              </Badge>
+            )}
+          </div>
+          <p className={`text-[10px] transition-colors ${isHovered ? 'text-zinc-500' : 'text-zinc-600'}`}>
+            {file.existsInStorage ? file.sizeFormatted : 'File no longer exists in storage'}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2 shrink-0">
+          {file.existsInStorage && (
+            <>
+              <button
+                onClick={() => onCopyCode(file.shareCode)}
+                className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors rounded-sm"
+                data-testid={`copy-code-${file.id}`}
+              >
+                {copiedCode === file.shareCode ? (
+                  <><Check size={10} className="text-green-500" /> Copied</>
+                ) : (
+                  <><Copy size={10} /> {file.shareCode}</>
+                )}
+              </button>
+              <button
+                onClick={() => onDownload(file.shareCode)}
+                className="p-1 text-zinc-500 hover:text-white transition-colors"
+                data-testid={`download-${file.id}`}
+              >
+                <Download size={14} />
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => onDelete(file.id)}
+            className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
+            data-testid={`delete-${file.id}`}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 }
 
@@ -325,6 +318,7 @@ export default function Home() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [hoveredFileId, setHoveredFileId] = useState<string | null>(null);
 
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
     queryKey: ['/api/files'],
@@ -839,7 +833,10 @@ export default function Home() {
                       <p className="text-zinc-500 text-xs font-mono">No files uploaded yet</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div 
+                      className="space-y-2"
+                      onMouseLeave={() => setHoveredFileId(null)}
+                    >
                       {uploadedFiles.map((file) => (
                         <FileItem
                           key={file.id}
@@ -848,6 +845,8 @@ export default function Home() {
                           onDownload={(code) => downloadMutation.mutate(code)}
                           onDelete={(id) => deleteMutation.mutate(id)}
                           copiedCode={copiedCode}
+                          isHovered={hoveredFileId === file.id}
+                          onMouseEnter={() => setHoveredFileId(file.id)}
                         />
                       ))}
                     </div>
