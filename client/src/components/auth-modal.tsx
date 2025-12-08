@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -99,6 +99,9 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
           <DialogTitle className="text-xl font-mono tracking-wider text-center">
             {tab === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}
           </DialogTitle>
+          <DialogDescription className="text-center text-zinc-500 text-xs">
+            {tab === "login" ? "Sign in to your account" : "Create a new account to get started"}
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "signup")} className="w-full">
