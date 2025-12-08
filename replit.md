@@ -49,7 +49,7 @@ Preferred communication style: Simple, everyday language.
 1. Local strategy (email/password) using bcrypt for password hashing
 2. Google OAuth 2.0 strategy for social login
 
-**Session Storage**: PostgreSQL-backed sessions using `connect-pg-simple` for persistent session storage. Sessions have a 7-day TTL.
+**Session Storage**: In-memory sessions using `memorystore` for session storage. Sessions have a 7-day TTL.
 
 **Session Security**:
 - HTTP-only cookies
@@ -61,9 +61,9 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Storage
 
-**Database**: PostgreSQL accessed through Drizzle ORM (node-postgres driver).
+**Database**: Turso (SQLite-based edge database) accessed through Drizzle ORM (libsql driver).
 
-**Schema Management**: Drizzle Kit for migrations with schema defined in `shared/schema.ts`.
+**Schema Management**: Drizzle Kit for migrations with schema defined in `shared/schema.ts`. Uses SQLite syntax for table definitions.
 
 **Tables**:
 - `users`: Stores user accounts with support for both local and OAuth authentication
@@ -73,7 +73,7 @@ Preferred communication style: Simple, everyday language.
 
 ### External Dependencies
 
-**Database**: PostgreSQL (configured via `DATABASE_URL` environment variable)
+**Database**: Turso (configured via `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` environment variables)
 
 **Third-party Services**:
 - Google OAuth 2.0 for social authentication
@@ -83,7 +83,8 @@ Preferred communication style: Simple, everyday language.
   - Cartographer plugin for development tooling
 
 **Required Environment Variables**:
-- `DATABASE_URL`: PostgreSQL connection string
+- `TURSO_DATABASE_URL`: Turso database URL (libsql://...)
+- `TURSO_AUTH_TOKEN`: Turso authentication token
 - `SESSION_SECRET`: Secret key for session encryption (defaults to dev-secret in development)
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
@@ -91,9 +92,9 @@ Preferred communication style: Simple, everyday language.
 
 **NPM Dependencies** (key libraries):
 - `drizzle-orm` & `drizzle-zod`: Database ORM and validation
-- `pg`: PostgreSQL client
+- `@libsql/client`: Turso/libSQL client
 - `passport`, `passport-local`, `passport-google-oauth20`: Authentication
-- `express-session`, `connect-pg-simple`: Session management
+- `express-session`, `memorystore`: Session management
 - `bcrypt`: Password hashing
 - `zod`: Schema validation
 - `@tanstack/react-query`: Data fetching
