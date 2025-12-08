@@ -27,53 +27,39 @@ const NETWORK_STATS = {
   up: "38.3 Mbps"
 };
 
-function AeroLogo({ className = "" }: { className?: string }) {
+function TitaniumLogo({ className = "" }: { className?: string }) {
   return (
-    <svg width="180" height="48" viewBox="0 0 300 80" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <svg width="200" height="48" viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
       <defs>
-        <linearGradient id="aeroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style={{ stopColor: '#3B82F6', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#06B6D4', stopOpacity: 1 }} />
+        <linearGradient id="titaniumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{ stopColor: '#a1a1aa', stopOpacity: 1 }} />
+          <stop offset="50%" style={{ stopColor: '#ffffff', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#71717a', stopOpacity: 1 }} />
         </linearGradient>
-        <linearGradient id="textGradientDark" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id="textGradientTitanium" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" style={{ stopColor: '#ffffff', stopOpacity: 1 }} />
-          <stop offset="100%" style={{ stopColor: '#e2e8f0', stopOpacity: 1 }} />
+          <stop offset="100%" style={{ stopColor: '#a1a1aa', stopOpacity: 1 }} />
         </linearGradient>
       </defs>
 
       <style>{`
-        .plane {
-          animation: float 3s ease-in-out infinite;
-          transform-origin: center;
+        .titanium-icon {
+          animation: pulse 2s ease-in-out infinite;
         }
-        .trail {
-          stroke-dasharray: 20;
-          stroke-dashoffset: 20;
-          opacity: 0;
-          animation: speedLine 3s ease-in-out infinite;
-        }
-        @keyframes float {
-          0% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-4px) rotate(1deg); }
-          100% { transform: translateY(0px) rotate(0deg); }
-        }
-        @keyframes speedLine {
-          0% { stroke-dashoffset: 20; opacity: 0; }
-          20% { opacity: 1; }
-          50% { stroke-dashoffset: 0; opacity: 0; }
-          100% { stroke-dashoffset: 0; opacity: 0; }
+        @keyframes pulse {
+          0% { opacity: 0.8; }
+          50% { opacity: 1; }
+          100% { opacity: 0.8; }
         }
       `}</style>
 
       <g>
-        <g transform="translate(10, 10)">
-          <path className="trail" d="M5 45 Q 15 50, 25 45" stroke="#06B6D4" strokeWidth="3" strokeLinecap="round" fill="none" />
-          <path className="plane" d="M10 40 L 60 15 L 35 55 L 30 40 L 10 40 Z" fill="url(#aeroGradient)" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
-          <path className="plane" d="M30 40 L 35 55 L 60 15" fill="#2563EB" style={{ mixBlendMode: 'multiply', opacity: 0.3 }} />
+        <g transform="translate(8, 16)">
+          <rect className="titanium-icon" x="0" y="8" width="40" height="40" fill="url(#titaniumGradient)" rx="4" />
+          <text x="20" y="36" textAnchor="middle" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '20px', fill: '#18181b' }}>T</text>
         </g>
 
-        <text x="80" y="52" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '38px', fill: 'url(#textGradientDark)' }}>Aero</text>
-        <text x="170" y="52" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: '38px', fill: '#64748B' }}>Send</text>
+        <text x="60" y="50" style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '32px', fill: 'url(#textGradientTitanium)', letterSpacing: '0.05em' }}>TITANIUM</text>
       </g>
     </svg>
   );
@@ -192,7 +178,7 @@ export default function Home() {
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-900 pr-16 transition-all duration-300">
-        <AeroLogo />
+        <TitaniumLogo />
         
         <nav className="hidden md:flex items-center gap-6 text-xs text-zinc-500">
           <button data-testid="nav-send" className="hover:text-white transition-colors uppercase tracking-wider">Send</button>
