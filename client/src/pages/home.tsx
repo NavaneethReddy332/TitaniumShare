@@ -24,12 +24,15 @@ import {
   Check,
   Trash2,
   FileIcon,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AuthModal } from "@/components/auth-modal";
@@ -321,6 +324,15 @@ export default function Home() {
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [lastUploadedFile, setLastUploadedFile] = useState<UploadedFile | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [receivedFileInfo, setReceivedFileInfo] = useState<{
+    shareCode: string;
+    originalName: string;
+    size: number;
+    sizeFormatted: string;
+    url: string;
+  } | null>(null);
+  const [receiveDownloadProgress, setReceiveDownloadProgress] = useState<number | null>(null);
+  const [receiveDownloadStatus, setReceiveDownloadStatus] = useState<"idle" | "fetching" | "ready" | "downloading" | "complete" | "error">("idle");
 
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
     queryKey: ['/api/files'],
@@ -544,10 +556,101 @@ export default function Home() {
     setLastUploadedFile(null);
   };
 
-  const handleReceive = () => {
+  const handleReceive = async () => {
     if (!receiveCode.trim()) return;
-    downloadMutation.mutate(receiveCode.trim().toUpperCase());
-    setReceiveCode("");
+    const code = receiveCode.trim().toUpperCase();
+    setReceiveDownloadStatus("fetching");
+    setLastUploadedFile(null);
+    
+    try {
+      const response = await fetch(`/api/files/download/${code}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'File not found');
+      }
+      const data = await response.json();
+      setReceivedFileInfo({
+        shareCode: code,
+        originalName: data.originalName,
+        size: data.size,
+        sizeFormatted: data.sizeFormatted,
+        url: data.url,
+      });
+      setReceiveDownloadStatus("ready");
+      setReceiveCode("");
+    } catch (error) {
+      toast({ title: error instanceof Error ? error.message : "File not found", variant: "destructive" });
+      setReceiveDownloadStatus("error");
+      setTimeout(() => setReceiveDownloadStatus("idle"), 2000);
+    }
+  };
+
+  const handleReceiveDownload = async () => {
+    if (!receivedFileInfo) return;
+    
+    setReceiveDownloadStatus("downloading");
+    setReceiveDownloadProgress(0);
+
+    try {
+      const response = await fetch(receivedFileInfo.url, { mode: 'cors' });
+      
+      if (!response.ok) {
+        throw new Error("Download failed");
+      }
+
+      const contentLength = response.headers.get("content-length");
+      const total = contentLength ? parseInt(contentLength, 10) : receivedFileInfo.size;
+      
+      const reader = response.body?.getReader();
+      
+      if (!reader) {
+        window.open(receivedFileInfo.url, '_blank');
+        setReceiveDownloadStatus("complete");
+        setReceiveDownloadProgress(100);
+        toast({ title: `Downloaded ${receivedFileInfo.originalName}` });
+        return;
+      }
+
+      const chunks: Uint8Array[] = [];
+      let receivedLength = 0;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        chunks.push(value);
+        receivedLength += value.length;
+        
+        const progress = Math.round((receivedLength / total) * 100);
+        setReceiveDownloadProgress(progress);
+      }
+
+      const blob = new Blob(chunks);
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = receivedFileInfo.originalName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      setReceiveDownloadStatus("complete");
+      setReceiveDownloadProgress(100);
+      toast({ title: `Downloaded ${receivedFileInfo.originalName}` });
+    } catch (err) {
+      window.open(receivedFileInfo.url, '_blank');
+      setReceiveDownloadStatus("complete");
+      setReceiveDownloadProgress(100);
+      toast({ title: `Downloaded ${receivedFileInfo.originalName}` });
+    }
+  };
+
+  const clearReceivedFile = () => {
+    setReceivedFileInfo(null);
+    setReceiveDownloadProgress(null);
+    setReceiveDownloadStatus("idle");
   };
 
   const handleNavigateAccount = () => {
@@ -947,6 +1050,86 @@ export default function Home() {
                       Scan to Download
                     </p>
                   </div>
+                </div>
+              </motion.div>
+            ) : receivedFileInfo ? (
+              <motion.div
+                key="received-file-details"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="z-10 w-full max-w-md p-6"
+              >
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={clearReceivedFile}
+                    className="text-zinc-500 hover:text-white transition-colors p-1"
+                    data-testid="btn-close-received-file"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Ready to Download</div>
+                    <div className="flex items-center gap-3">
+                      <FileIcon size={24} className="text-green-500 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate" data-testid="text-received-filename">
+                          {receivedFileInfo.originalName}
+                        </p>
+                        <p className="text-[10px] text-zinc-500">{receivedFileInfo.sizeFormatted}</p>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="text-[10px] text-zinc-600 font-mono">Code:</span>
+                      <span className="text-xs text-cyan-400 font-mono font-bold" data-testid="text-received-code">
+                        {receivedFileInfo.shareCode}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(receiveDownloadStatus === "downloading" || receiveDownloadStatus === "complete") && receiveDownloadProgress !== null && (
+                    <div className="space-y-2" data-testid="receive-download-progress">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-zinc-400 font-mono">
+                          {receiveDownloadStatus === "complete" ? "Complete" : "Downloading..."}
+                        </span>
+                        <span className="text-white font-mono" data-testid="text-receive-percentage">{receiveDownloadProgress}%</span>
+                      </div>
+                      <Progress value={receiveDownloadProgress} className="h-2" data-testid="progress-receive" />
+                    </div>
+                  )}
+
+                  {receiveDownloadStatus === "complete" && (
+                    <div className="flex items-center gap-2 p-3 bg-green-900/20 border border-green-800 rounded-md" data-testid="receive-complete">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                      <span className="text-green-400 text-sm">Download complete!</span>
+                    </div>
+                  )}
+
+                  {receiveDownloadStatus === "error" && (
+                    <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-800 rounded-md" data-testid="receive-error">
+                      <AlertCircle className="w-5 h-5 text-red-500" />
+                      <span className="text-red-400 text-sm">Download failed</span>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleReceiveDownload}
+                    disabled={receiveDownloadStatus === "downloading"}
+                    data-testid="btn-receive-download"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-mono uppercase tracking-wider"
+                  >
+                    {receiveDownloadStatus === "downloading" ? (
+                      <><Loader2 size={14} className="mr-2 animate-spin" /> Downloading...</>
+                    ) : receiveDownloadStatus === "complete" ? (
+                      <><Download size={14} className="mr-2" /> Download Again</>
+                    ) : (
+                      <><Download size={14} className="mr-2" /> Download File</>
+                    )}
+                  </Button>
                 </div>
               </motion.div>
             ) : (
