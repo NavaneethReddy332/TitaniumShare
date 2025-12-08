@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "wouter";
 import { 
   Cloud, 
   Share2, 
@@ -68,13 +69,13 @@ function TitaniumLogo({ className = "" }: { className?: string }) {
   );
 }
 
-function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated }: { activeTab: string, setActiveTab: (tab: string) => void, onLogout: () => void, isAuthenticated: boolean }) {
+function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigateAccount }: { activeTab: string, setActiveTab: (tab: string) => void, onLogout: () => void, isAuthenticated: boolean, onNavigateAccount: () => void }) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const menuItems = [
     { id: 'send', icon: Send, label: 'Send', action: () => setActiveTab('cloud') },
     { id: 'receive', icon: Download, label: 'Receive', action: () => setActiveTab('cloud') },
-    { id: 'account', icon: User, label: 'Account', action: () => {} },
+    { id: 'account', icon: User, label: 'Account', action: onNavigateAccount },
     { id: 'feedback', icon: MessageSquare, label: 'Feedback', action: () => {} },
     { id: 'about', icon: Info, label: 'About', action: () => {} },
   ];
@@ -164,6 +165,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated }: { activ
 
 export default function Home() {
   const { user, logout, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("cloud");
   const [files, setFiles] = useState<File[]>([]);
   const [receiveCode, setReceiveCode] = useState("");
@@ -178,6 +180,14 @@ export default function Home() {
 
   const removeFile = (name: string) => {
     setFiles(files.filter(f => f.name !== name));
+  };
+
+  const handleNavigateAccount = () => {
+    if (isAuthenticated) {
+      navigate('/account');
+    } else {
+      setShowAuthModal(true);
+    }
   };
 
   return (
@@ -234,7 +244,7 @@ export default function Home() {
 
       {/* Main Content Area - contains sidebar */}
       <div className="content-with-sidebar">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} isAuthenticated={isAuthenticated} />
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} isAuthenticated={isAuthenticated} onNavigateAccount={handleNavigateAccount} />
         
         <main className="flex-1 flex flex-col md:flex-row pr-4 transition-all duration-300 overflow-auto">
         
