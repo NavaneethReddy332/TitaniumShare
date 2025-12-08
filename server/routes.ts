@@ -1,9 +1,27 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import passport from "passport";
+import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, hashPassword } from "./auth";
 import { z } from "zod";
+import { uploadFile, getDownloadUrl, deleteFile, generateFileKey, formatFileSize } from "./storj";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+  },
+});
+
+function generateShareCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
 
 const signupSchema = z.object({
   email: z.string().email(),
@@ -157,6 +175,122 @@ export async function registerRoutes(
       `);
     });
   }
+
+  // File upload endpoint
+  app.post("/api/files/upload", isAuthenticated, upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+
+      const user = req.user as { id: string };
+      const originalName = req.file.originalname;
+      const contentType = req.file.mimetype;
+      const size = req.file.size;
+
+      const storageKey = generateFileKey(user.id, originalName);
+      const shareCode = generateShareCode();
+
+      await uploadFile(storageKey, req.file.buffer, contentType);
+
+      const file = await storage.createFile({
+        userId: user.id,
+        originalName,
+        storageKey,
+        size,
+        contentType,
+        shareCode,
+        expiresAt: null,
+      });
+
+      res.json({
+        id: file.id,
+        originalName: file.originalName,
+        size: file.size,
+        sizeFormatted: formatFileSize(file.size),
+        shareCode: file.shareCode,
+        createdAt: file.createdAt,
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ message: "Upload failed" });
+    }
+  });
+
+  // Get user's files
+  app.get("/api/files", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const files = await storage.getFilesByUserId(user.id);
+      
+      res.json(files.map(f => ({
+        id: f.id,
+        originalName: f.originalName,
+        size: f.size,
+        sizeFormatted: formatFileSize(f.size),
+        shareCode: f.shareCode,
+        downloadCount: f.downloadCount,
+        createdAt: f.createdAt,
+      })));
+    } catch (error) {
+      console.error("List files error:", error);
+      res.status(500).json({ message: "Failed to list files" });
+    }
+  });
+
+  // Get download URL by share code
+  app.get("/api/files/download/:shareCode", async (req, res) => {
+    try {
+      const { shareCode } = req.params;
+      const file = await storage.getFileByShareCode(shareCode);
+
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      if (file.expiresAt && new Date() > file.expiresAt) {
+        return res.status(410).json({ message: "File has expired" });
+      }
+
+      const downloadUrl = await getDownloadUrl(file.storageKey, 3600);
+      await storage.incrementDownloadCount(file.id);
+
+      res.json({
+        url: downloadUrl,
+        originalName: file.originalName,
+        size: file.size,
+        sizeFormatted: formatFileSize(file.size),
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      res.status(500).json({ message: "Download failed" });
+    }
+  });
+
+  // Delete file
+  app.delete("/api/files/:id", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const { id } = req.params;
+
+      const file = await storage.getFile(id);
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      if (file.userId !== user.id) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      await deleteFile(file.storageKey);
+      await storage.deleteFile(id);
+
+      res.json({ message: "File deleted" });
+    } catch (error) {
+      console.error("Delete error:", error);
+      res.status(500).json({ message: "Delete failed" });
+    }
+  });
 
   return httpServer;
 }

@@ -38,3 +38,25 @@ export const insertUserSchema = createInsertSchema(users).omit({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export const files = sqliteTable("files", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text("user_id").notNull(),
+  originalName: text("original_name").notNull(),
+  storageKey: text("storage_key").notNull(),
+  size: integer("size").notNull(),
+  contentType: text("content_type"),
+  shareCode: text("share_code").unique(),
+  downloadCount: integer("download_count").default(0),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+export const insertFileSchema = createInsertSchema(files).omit({
+  id: true,
+  downloadCount: true,
+  createdAt: true,
+});
+
+export type InsertFile = z.infer<typeof insertFileSchema>;
+export type File = typeof files.$inferSelect;

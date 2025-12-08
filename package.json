@@ -12,6 +12,9 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.946.0",
+    "@aws-sdk/lib-storage": "^3.946.0",
+    "@aws-sdk/s3-request-presigner": "^3.946.0",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@libsql/client": "^0.15.15",
@@ -45,6 +48,7 @@
     "@tanstack/react-query": "^5.60.5",
     "@types/bcrypt": "^6.0.0",
     "@types/memoizee": "^0.4.12",
+    "@types/multer": "^2.0.0",
     "@types/passport-google-oauth20": "^2.0.17",
     "bcrypt": "^6.0.0",
     "class-variance-authority": "^0.7.1",
@@ -62,6 +66,7 @@
     "lucide-react": "^0.545.0",
     "memoizee": "^0.4.17",
     "memorystore": "^1.6.7",
+    "multer": "^2.0.2",
     "next-themes": "^0.4.6",
     "openid-client": "^6.8.1",
     "passport": "^0.7.0",
