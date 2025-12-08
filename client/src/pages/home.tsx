@@ -317,8 +317,6 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const [hoveredFileId, setHoveredFileId] = useState<string | null>(null);
 
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
     queryKey: ['/api/files'],
@@ -623,13 +621,6 @@ export default function Home() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
                       <span>Send</span>
-                      <button 
-                        data-testid="btn-history" 
-                        onClick={() => setShowHistory(!showHistory)}
-                        className={`hover:text-white transition-colors ${showHistory ? 'text-white' : ''}`}
-                      >
-                        {showHistory ? 'Hide History' : 'History'}
-                      </button>
                     </div>
 
                     {/* Unified Drop Zone with Files and Progress */}
@@ -812,82 +803,39 @@ export default function Home() {
           />
           
           <AnimatePresence mode="wait">
-            {showHistory && isAuthenticated ? (
-              <motion.div
-                key="history"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="absolute inset-0 p-6 overflow-auto"
-              >
-                <div className="max-w-2xl mx-auto">
-                  <h2 className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-4">Your Files</h2>
-                  
-                  {filesLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <Loader2 size={24} className="text-zinc-600 animate-spin" />
-                    </div>
-                  ) : uploadedFiles.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FileIcon size={32} className="text-zinc-700 mx-auto mb-3" />
-                      <p className="text-zinc-500 text-xs font-mono">No files uploaded yet</p>
-                    </div>
-                  ) : (
-                    <div 
-                      className="space-y-2"
-                      onMouseLeave={() => setHoveredFileId(null)}
-                    >
-                      {uploadedFiles.map((file) => (
-                        <FileItem
-                          key={file.id}
-                          file={file}
-                          onCopyCode={copyShareCode}
-                          onDownload={(code) => downloadMutation.mutate(code)}
-                          onDelete={(id) => deleteMutation.mutate(id)}
-                          copiedCode={copiedCode}
-                          isHovered={hoveredFileId === file.id}
-                          onMouseEnter={() => setHoveredFileId(file.id)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div 
-                key="placeholder"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="text-center space-y-4 z-10 opacity-30 pointer-events-none select-none"
-              >
-                {activeTab === 'cloud' ? (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    key="cloud-vis"
-                    className="flex flex-col items-center gap-3"
-                  >
-                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                      <Cloud size={36} className="text-zinc-700" />
-                    </div>
-                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
-                  </motion.div>
-                ) : (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    key="p2p-vis"
-                    className="flex flex-col items-center gap-3"
-                  >
-                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                      <Share2 size={36} className="text-zinc-700" />
-                    </div>
-                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
-                  </motion.div>
-                )}
-              </motion.div>
-            )}
+            <motion.div 
+              key="placeholder"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center space-y-4 z-10 opacity-30 pointer-events-none select-none"
+            >
+              {activeTab === 'cloud' ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  key="cloud-vis"
+                  className="flex flex-col items-center gap-3"
+                >
+                  <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
+                    <Cloud size={36} className="text-zinc-700" />
+                  </div>
+                  <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  key="p2p-vis"
+                  className="flex flex-col items-center gap-3"
+                >
+                  <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
+                    <Share2 size={36} className="text-zinc-700" />
+                  </div>
+                  <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
+                </motion.div>
+              )}
+            </motion.div>
           </AnimatePresence>
         </div>
       </main>

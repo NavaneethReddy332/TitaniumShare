@@ -14,7 +14,11 @@ import {
   AlertTriangle,
   Upload,
   Download,
-  Loader2
+  Loader2,
+  Copy,
+  Check,
+  Trash2,
+  FileIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -164,15 +168,68 @@ interface ActivityItem {
   createdAt: string;
 }
 
+interface UploadedFile {
+  id: string;
+  originalName: string;
+  size: number;
+  sizeFormatted: string;
+  shareCode: string;
+  downloadCount: number;
+  createdAt: string;
+  existsInStorage: boolean;
+}
+
 function OverviewTab() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [hoveredFileId, setHoveredFileId] = useState<string | null>(null);
   
   const { data: storageData, isLoading: storageLoading } = useQuery<StorageData>({
     queryKey: ['/api/account/storage'],
   });
 
-  const { data: activityData, isLoading: activityLoading } = useQuery<ActivityItem[]>({
-    queryKey: ['/api/account/activity'],
+  const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
+    queryKey: ['/api/files'],
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/files/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/account/storage'] });
+      toast({ title: "File deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete file", variant: "destructive" });
+    },
+  });
+
+  const downloadMutation = useMutation({
+    mutationFn: async (shareCode: string) => {
+      const response = await fetch(`/api/files/download/${shareCode}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Download failed');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const link = document.createElement('a');
+      link.href = data.url;
+      link.download = data.originalName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: `Downloading ${data.originalName}` });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message, variant: "destructive" });
+    },
   });
   
   const formatTimeAgo = (dateStr: string) => {
@@ -187,6 +244,13 @@ function OverviewTab() {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     return `${diffDays}d ago`;
+  };
+
+  const copyShareCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast({ title: "Share code copied!" });
+    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   return (
@@ -226,28 +290,110 @@ function OverviewTab() {
           </span>
         </div>
         
-        {activityLoading ? (
+        {filesLoading ? (
           <div className="text-center py-8">
             <Loader2 size={24} className="text-zinc-500 mx-auto animate-spin" />
           </div>
-        ) : activityData && activityData.length > 0 ? (
-          <div>
-            {activityData.map((item) => (
-              <ActivityItemRow
-                key={item.id}
-                icon={Upload}
-                title={item.fileName}
-                subtitle={`${item.sizeFormatted} - ${item.downloadCount} downloads`}
-                status={formatTimeAgo(item.createdAt)}
-                testId={`activity-${item.id}`}
-              />
+        ) : uploadedFiles.length > 0 ? (
+          <div 
+            className="space-y-2"
+            onMouseLeave={() => setHoveredFileId(null)}
+          >
+            {uploadedFiles.map((file) => (
+              <div
+                key={file.id}
+                className="relative"
+                onMouseEnter={() => setHoveredFileId(file.id)}
+              >
+                {hoveredFileId === file.id && (
+                  <motion.div
+                    layoutId="file-list-hover-bg"
+                    className={`absolute inset-0 rounded-md ${
+                      file.existsInStorage 
+                        ? 'bg-zinc-800/60' 
+                        : 'bg-red-900/20'
+                    }`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 350, 
+                      damping: 25,
+                      duration: 0.2
+                    }}
+                  />
+                )}
+                
+                <div
+                  data-testid={`uploaded-file-${file.id}`}
+                  className={`relative z-10 bg-zinc-900/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
+                    file.existsInStorage 
+                      ? 'border-zinc-800' 
+                      : 'border-red-900/50'
+                  } ${hoveredFileId === file.id ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''}`}
+                >
+                  {file.existsInStorage ? (
+                    <FileIcon size={16} className={`shrink-0 transition-colors ${hoveredFileId === file.id ? 'text-zinc-300' : 'text-zinc-500'}`} />
+                  ) : (
+                    <AlertTriangle size={16} className="text-red-500 shrink-0" />
+                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className={`text-xs truncate transition-colors ${
+                        file.existsInStorage 
+                          ? (hoveredFileId === file.id ? 'text-white' : 'text-zinc-300')
+                          : 'text-red-400'
+                      }`}>
+                        {file.originalName}
+                      </p>
+                    </div>
+                    <p className={`text-[10px] transition-colors ${hoveredFileId === file.id ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                      {file.existsInStorage ? `${file.sizeFormatted} - ${formatTimeAgo(file.createdAt)}` : 'File no longer exists in storage'}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 shrink-0">
+                    {file.existsInStorage && (
+                      <>
+                        <button
+                          onClick={() => copyShareCode(file.shareCode)}
+                          className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors rounded-sm"
+                          data-testid={`copy-code-${file.id}`}
+                        >
+                          {copiedCode === file.shareCode ? (
+                            <><Check size={10} className="text-green-500" /> Copied</>
+                          ) : (
+                            <><Copy size={10} /> {file.shareCode}</>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => downloadMutation.mutate(file.shareCode)}
+                          className="p-1 text-zinc-500 hover:text-white transition-colors"
+                          data-testid={`download-${file.id}`}
+                        >
+                          <Download size={14} />
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => deleteMutation.mutate(file.id)}
+                      className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
+                      data-testid={`delete-${file.id}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
           <div className="text-center py-8">
-            <Activity size={32} className="text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm text-zinc-500">No recent activity</p>
-            <p className="text-[11px] text-zinc-600 mt-1">Your file transfers will appear here</p>
+            <FileIcon size={32} className="text-zinc-700 mx-auto mb-3" />
+            <p className="text-sm text-zinc-500">No files uploaded yet</p>
+            <p className="text-[11px] text-zinc-600 mt-1">Your uploaded files will appear here</p>
           </div>
         )}
       </div>
