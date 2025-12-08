@@ -357,9 +357,14 @@ export default function Home() {
     const filesToProcess = [...filesToUpload];
     setFilesToUpload([]);
 
-    for (const file of filesToProcess) {
-      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 0, status: 'uploading' }]);
-      
+    // Initialize all progress entries
+    setUploadProgress(prev => [
+      ...prev,
+      ...filesToProcess.map(file => ({ fileName: file.name, progress: 0, status: 'uploading' as const }))
+    ]);
+
+    // Upload all files in parallel for maximum speed
+    const uploadPromises = filesToProcess.map(async (file) => {
       try {
         await uploadWithProgress(file);
         
@@ -367,15 +372,19 @@ export default function Home() {
           prev.map(p => p.fileName === file.name ? { ...p, progress: 100, status: 'complete' } : p)
         );
         
-        queryClient.invalidateQueries({ queryKey: ['/api/files'] });
         toast({ title: `Uploaded ${file.name}` });
+        return { success: true, file };
       } catch {
         setUploadProgress(prev => 
           prev.map(p => p.fileName === file.name ? { ...p, status: 'error' } : p)
         );
         toast({ title: `Failed to upload ${file.name}`, variant: "destructive" });
+        return { success: false, file };
       }
-    }
+    });
+
+    await Promise.all(uploadPromises);
+    queryClient.invalidateQueries({ queryKey: ['/api/files'] });
 
     setTimeout(() => {
       setUploadProgress(prev => prev.filter(p => p.status !== 'complete'));
@@ -497,80 +506,61 @@ export default function Home() {
                       </button>
                     </div>
 
+                    {/* Unified Drop Zone with Files and Progress */}
                     <div 
                       {...getRootProps()} 
                       data-testid="dropzone"
                       className={`
-                        border border-dashed border-zinc-800 rounded-none p-6 
-                        flex flex-col items-center justify-center gap-3 
+                        border border-dashed border-zinc-800 rounded-none p-4
                         transition-all duration-300 cursor-pointer
                         hover:border-zinc-600 hover:bg-zinc-900/30
                         ${isDragActive ? 'border-white bg-zinc-900/50' : ''}
+                        ${(filesToUpload.length > 0 || uploadProgress.length > 0) ? 'min-h-[120px]' : ''}
                       `}
                     >
                       <input {...getInputProps()} />
-                      <Upload size={20} className="text-zinc-600" />
-                      <p className="text-zinc-500 text-xs font-mono text-center">
-                        {isDragActive ? "DROP FILES HERE" : "drop or click (files/folders)"}
-                      </p>
-                    </div>
+                      
+                      {/* Empty state */}
+                      {filesToUpload.length === 0 && uploadProgress.length === 0 && (
+                        <div className="flex flex-col items-center justify-center gap-3 py-4">
+                          <Upload size={20} className="text-zinc-600" />
+                          <p className="text-zinc-500 text-xs font-mono text-center">
+                            {isDragActive ? "DROP FILES HERE" : "drop or click (files/folders)"}
+                          </p>
+                        </div>
+                      )}
 
-                    <Button 
-                      variant="outline" 
-                      data-testid="btn-select-files"
-                      className="w-full rounded-none border-zinc-800 bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-700 h-10 font-mono text-[10px] uppercase tracking-widest"
-                    >
-                      <FolderOpen size={14} className="mr-2" />
-                      Select File(s)
-                    </Button>
-
-                    {/* File List Preview */}
-                    <AnimatePresence>
+                      {/* Files waiting to upload */}
                       {filesToUpload.length > 0 && (
-                        <motion.div 
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-2 mt-3"
-                        >
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                           {filesToUpload.map((file, idx) => (
-                            <div key={`${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800 text-[10px]">
-                              <span className="truncate max-w-[180px] text-zinc-300">{file.name}</span>
-                              <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500">
-                                <X size={12} />
-                              </button>
+                            <div key={`pending-${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800 text-[10px]">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <FileIcon size={12} className="text-zinc-500 shrink-0" />
+                                <span className="truncate text-zinc-300">{file.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-zinc-600 text-[9px]">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500">
+                                  <X size={12} />
+                                </button>
+                              </div>
                             </div>
                           ))}
-                          <Button 
-                            data-testid="btn-start-upload" 
-                            onClick={handleUploadAll}
-                            disabled={uploadMutation.isPending}
-                            className="w-full rounded-none bg-white text-black hover:bg-zinc-200 mt-2 font-mono text-[10px] uppercase font-bold h-10"
-                          >
-                            {uploadMutation.isPending ? (
-                              <><Loader2 size={14} className="mr-2 animate-spin" /> Uploading...</>
-                            ) : (
-                              "Start Upload"
-                            )}
-                          </Button>
-                        </motion.div>
+                        </div>
                       )}
-                    </AnimatePresence>
 
-                    {/* Upload Progress */}
-                    <AnimatePresence>
+                      {/* Upload Progress */}
                       {uploadProgress.length > 0 && (
-                        <motion.div 
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="space-y-2"
-                        >
+                        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                           {uploadProgress.map((p, idx) => (
-                            <div key={idx} className="bg-zinc-900/50 border border-zinc-800 p-2">
+                            <div key={`progress-${idx}`} className="p-2 bg-zinc-900/50 border border-zinc-800">
                               <div className="flex items-center justify-between text-[10px] mb-1">
-                                <span className="truncate max-w-[180px] text-zinc-300">{p.fileName}</span>
-                                <span className={`${p.status === 'complete' ? 'text-green-500' : p.status === 'error' ? 'text-red-500' : 'text-zinc-500'}`}>
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <FileIcon size={12} className="text-zinc-500 shrink-0" />
+                                  <span className="truncate text-zinc-300">{p.fileName}</span>
+                                </div>
+                                <span className={`shrink-0 ml-2 ${p.status === 'complete' ? 'text-green-500' : p.status === 'error' ? 'text-red-500' : 'text-zinc-400'}`}>
                                   {p.status === 'complete' ? 'Done' : p.status === 'error' ? 'Failed' : `${p.progress}%`}
                                 </span>
                               </div>
@@ -578,15 +568,58 @@ export default function Home() {
                                 <motion.div 
                                   initial={{ width: 0 }}
                                   animate={{ width: `${p.progress}%` }}
-                                  transition={{ duration: 0.2 }}
+                                  transition={{ duration: 0.1 }}
                                   className={`h-full ${p.status === 'complete' ? 'bg-green-500' : p.status === 'error' ? 'bg-red-500' : 'bg-white'}`}
                                 />
                               </div>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {/* Add more files hint when files exist */}
+                      {(filesToUpload.length > 0 || uploadProgress.length > 0) && (
+                        <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-zinc-800/50">
+                          <Upload size={12} className="text-zinc-600" />
+                          <span className="text-zinc-600 text-[9px] font-mono">DROP MORE FILES</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Upload Button */}
+                    <AnimatePresence>
+                      {filesToUpload.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                        >
+                          <Button 
+                            data-testid="btn-start-upload" 
+                            onClick={handleUploadAll}
+                            disabled={uploadProgress.some(p => p.status === 'uploading')}
+                            className="w-full rounded-none bg-white text-black hover:bg-zinc-200 font-mono text-[10px] uppercase font-bold h-10"
+                          >
+                            {uploadProgress.some(p => p.status === 'uploading') ? (
+                              <><Loader2 size={14} className="mr-2 animate-spin" /> Uploading...</>
+                            ) : (
+                              `Upload ${filesToUpload.length} File${filesToUpload.length > 1 ? 's' : ''}`
+                            )}
+                          </Button>
                         </motion.div>
                       )}
                     </AnimatePresence>
+
+                    <Button 
+                      variant="outline" 
+                      data-testid="btn-select-files"
+                      onClick={(e) => { e.stopPropagation(); }}
+                      {...getRootProps()}
+                      className="w-full rounded-none border-zinc-800 bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-700 h-10 font-mono text-[10px] uppercase tracking-widest"
+                    >
+                      <FolderOpen size={14} className="mr-2" />
+                      Select File(s)
+                    </Button>
                   </div>
 
                   <Separator className="bg-zinc-900" />

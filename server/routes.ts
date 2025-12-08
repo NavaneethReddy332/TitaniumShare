@@ -36,13 +36,18 @@ const upload = multer({
   },
 });
 
-function generateShareCode(): string {
+async function generateUniqueShareCode(): Promise<string> {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let attempt = 0; attempt < 10; attempt++) {
+    let code = "";
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    const existing = await storage.getFileByShareCode(code);
+    if (!existing) return code;
   }
-  return code;
+  // Fallback: use timestamp-based code
+  return Date.now().toString(36).toUpperCase().slice(-6);
 }
 
 const signupSchema = z.object({
@@ -209,7 +214,7 @@ export async function registerRoutes(
       }
 
       const storageKey = generateFileKey(user.id, fileName);
-      const shareCode = generateShareCode();
+      const shareCode = await generateUniqueShareCode();
       const uploadUrl = await getUploadUrl(storageKey, contentType || 'application/octet-stream', 3600);
 
       res.json({
@@ -229,19 +234,38 @@ export async function registerRoutes(
       const user = req.user as { id: string };
       const { storageKey, shareCode, originalName, size, contentType } = req.body;
 
-      if (!storageKey || !shareCode || !originalName || !size) {
+      if (!storageKey || !originalName || !size) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      const file = await storage.createFile({
-        userId: user.id,
-        originalName,
-        storageKey,
-        size,
-        contentType: contentType || 'application/octet-stream',
-        shareCode,
-        expiresAt: null,
-      });
+      // Try with provided shareCode, regenerate if collision
+      let finalShareCode = shareCode || await generateUniqueShareCode();
+      let file;
+      
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          file = await storage.createFile({
+            userId: user.id,
+            originalName,
+            storageKey,
+            size,
+            contentType: contentType || 'application/octet-stream',
+            shareCode: finalShareCode,
+            expiresAt: null,
+          });
+          break;
+        } catch (err: any) {
+          if (err.code === 'SQLITE_CONSTRAINT' && attempt < 2) {
+            finalShareCode = await generateUniqueShareCode();
+            continue;
+          }
+          throw err;
+        }
+      }
+
+      if (!file) {
+        return res.status(500).json({ message: "Failed to save file metadata" });
+      }
 
       res.json({
         id: file.id,
@@ -278,7 +302,7 @@ export async function registerRoutes(
       const size = req.file.size;
 
       const storageKey = generateFileKey(user.id, originalName);
-      const shareCode = generateShareCode();
+      const shareCode = await generateUniqueShareCode();
 
       await uploadFile(storageKey, req.file.buffer, contentType);
 
