@@ -224,102 +224,122 @@ export default function Home() {
           <Tabs defaultValue="cloud" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full bg-transparent border-b border-zinc-900 p-0 h-auto justify-start gap-6 rounded-none">
               <TabsTrigger 
-                value="p2p" 
-                data-testid="tab-p2p"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-[10px] hover:text-zinc-300 transition-colors"
-              >
-                P2P Transfer
-              </TabsTrigger>
-              <TabsTrigger 
                 value="cloud" 
                 data-testid="tab-cloud"
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-[10px] hover:text-zinc-300 transition-colors"
               >
                 Cloud Upload
               </TabsTrigger>
+              <TabsTrigger 
+                value="p2p" 
+                data-testid="tab-p2p"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-[10px] hover:text-zinc-300 transition-colors"
+              >
+                P2P Transfer
+              </TabsTrigger>
             </TabsList>
 
             <div className="mt-6 space-y-6">
-              {/* SEND SECTION */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
-                  <span>Send</span>
-                  <button data-testid="btn-history" className="hover:text-white transition-colors">History</button>
-                </div>
+              {activeTab === 'cloud' ? (
+                <>
+                  {/* SEND SECTION */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+                      <span>Send</span>
+                      <button data-testid="btn-history" className="hover:text-white transition-colors">History</button>
+                    </div>
 
-                <div 
-                  {...getRootProps()} 
-                  data-testid="dropzone"
-                  className={`
-                    border border-dashed border-zinc-800 rounded-none p-6 
-                    flex flex-col items-center justify-center gap-3 
-                    transition-all duration-300 cursor-pointer
-                    hover:border-zinc-600 hover:bg-zinc-900/30
-                    ${isDragActive ? 'border-white bg-zinc-900/50' : ''}
-                  `}
-                >
-                  <input {...getInputProps()} />
-                  <Upload size={20} className="text-zinc-600" />
-                  <p className="text-zinc-500 text-xs font-mono text-center">
-                    {isDragActive ? "DROP FILES HERE" : "drop or click (files/folders)"}
-                  </p>
-                </div>
-
-                <Button 
-                  variant="outline" 
-                  data-testid="btn-select-files"
-                  className="w-full rounded-none border-zinc-800 bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-700 h-10 font-mono text-[10px] uppercase tracking-widest"
-                >
-                  <FolderOpen size={14} className="mr-2" />
-                  Select File(s)
-                </Button>
-
-                {/* File List Preview */}
-                <AnimatePresence>
-                  {files.length > 0 && (
-                    <motion.div 
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="space-y-2 mt-3"
+                    <div 
+                      {...getRootProps()} 
+                      data-testid="dropzone"
+                      className={`
+                        border border-dashed border-zinc-800 rounded-none p-6 
+                        flex flex-col items-center justify-center gap-3 
+                        transition-all duration-300 cursor-pointer
+                        hover:border-zinc-600 hover:bg-zinc-900/30
+                        ${isDragActive ? 'border-white bg-zinc-900/50' : ''}
+                      `}
                     >
-                      {files.map((file, idx) => (
-                        <div key={`${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800 text-[10px]">
-                          <span className="truncate max-w-[180px] text-zinc-300">{file.name}</span>
-                          <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500">
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))}
-                      <Button data-testid="btn-start-upload" className="w-full rounded-none bg-white text-black hover:bg-zinc-200 mt-2 font-mono text-[10px] uppercase font-bold h-10">
-                        Start Upload
+                      <input {...getInputProps()} />
+                      <Upload size={20} className="text-zinc-600" />
+                      <p className="text-zinc-500 text-xs font-mono text-center">
+                        {isDragActive ? "DROP FILES HERE" : "drop or click (files/folders)"}
+                      </p>
+                    </div>
+
+                    <Button 
+                      variant="outline" 
+                      data-testid="btn-select-files"
+                      className="w-full rounded-none border-zinc-800 bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-700 h-10 font-mono text-[10px] uppercase tracking-widest"
+                    >
+                      <FolderOpen size={14} className="mr-2" />
+                      Select File(s)
+                    </Button>
+
+                    {/* File List Preview */}
+                    <AnimatePresence>
+                      {files.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-2 mt-3"
+                        >
+                          {files.map((file, idx) => (
+                            <div key={`${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800 text-[10px]">
+                              <span className="truncate max-w-[180px] text-zinc-300">{file.name}</span>
+                              <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500">
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                          <Button data-testid="btn-start-upload" className="w-full rounded-none bg-white text-black hover:bg-zinc-200 mt-2 font-mono text-[10px] uppercase font-bold h-10">
+                            Start Upload
+                          </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+
+                  <Separator className="bg-zinc-900" />
+
+                  {/* RECEIVE SECTION */}
+                  <div className="space-y-3">
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+                      Receive
+                    </div>
+                    
+                    <div className="flex gap-0">
+                      <Input 
+                        value={receiveCode}
+                        onChange={(e) => setReceiveCode(e.target.value)}
+                        data-testid="input-receive-code"
+                        placeholder="6/8 digit code" 
+                        className="rounded-none border-zinc-800 bg-transparent text-center font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700"
+                      />
+                      <Button data-testid="btn-receive" className="rounded-none h-10 w-10 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800">
+                        <ArrowRight size={14} className="text-zinc-400" />
                       </Button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <Separator className="bg-zinc-900" />
-
-              {/* RECEIVE SECTION */}
-              <div className="space-y-3">
-                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
-                  Receive
-                </div>
-                
-                <div className="flex gap-0">
-                  <Input 
-                    value={receiveCode}
-                    onChange={(e) => setReceiveCode(e.target.value)}
-                    data-testid="input-receive-code"
-                    placeholder="6/8 digit code" 
-                    className="rounded-none border-zinc-800 bg-transparent text-center font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700"
-                  />
-                  <Button data-testid="btn-receive" className="rounded-none h-10 w-10 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800">
-                    <ArrowRight size={14} className="text-zinc-400" />
-                  </Button>
-                </div>
-              </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* P2P Coming Soon */
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center py-16 text-center"
+                >
+                  <div className="w-16 h-16 border border-zinc-800 rounded-full flex items-center justify-center mb-4">
+                    <Share2 size={24} className="text-zinc-600" />
+                  </div>
+                  <h3 className="text-white font-mono text-sm uppercase tracking-widest mb-2">P2P Transfer</h3>
+                  <p className="text-zinc-500 text-xs font-mono">Coming Soon</p>
+                  <div className="mt-4 px-3 py-1 border border-zinc-800 bg-zinc-900/50">
+                    <span className="text-[9px] text-zinc-400 font-mono uppercase tracking-wider">Under Development</span>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </Tabs>
         </div>
