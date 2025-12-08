@@ -5,7 +5,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, hashPassword } from "./auth";
 import { z } from "zod";
-import { uploadFile, getDownloadUrl, getUploadUrl, deleteFile, generateFileKey, formatFileSize } from "./storj";
+import { uploadFile, getDownloadUrl, getUploadUrl, deleteFile, generateFileKey, formatFileSize, getFileMetadata } from "./storj";
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp', 'image/tiff',
@@ -342,15 +342,24 @@ export async function registerRoutes(
       const user = req.user as { id: string };
       const files = await storage.getFilesByUserId(user.id);
       
-      res.json(files.map(f => ({
-        id: f.id,
-        originalName: f.originalName,
-        size: f.size,
-        sizeFormatted: formatFileSize(f.size),
-        shareCode: f.shareCode,
-        downloadCount: f.downloadCount,
-        createdAt: f.createdAt,
-      })));
+      // Check if each file exists in Storj storage
+      const filesWithStatus = await Promise.all(
+        files.map(async (f) => {
+          const storjMetadata = await getFileMetadata(f.storageKey);
+          return {
+            id: f.id,
+            originalName: f.originalName,
+            size: f.size,
+            sizeFormatted: formatFileSize(f.size),
+            shareCode: f.shareCode,
+            downloadCount: f.downloadCount,
+            createdAt: f.createdAt,
+            existsInStorage: storjMetadata !== null,
+          };
+        })
+      );
+      
+      res.json(filesWithStatus);
     } catch (error) {
       console.error("List files error:", error);
       res.status(500).json({ message: "Failed to list files" });

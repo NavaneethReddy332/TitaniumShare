@@ -22,7 +22,8 @@ import {
   Copy,
   Check,
   Trash2,
-  FileIcon
+  FileIcon,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ interface UploadedFile {
   shareCode: string;
   downloadCount: number;
   createdAt: string;
+  existsInStorage: boolean;
 }
 
 interface UploadProgress {
@@ -138,18 +140,22 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
               <button
                 onClick={item.action}
                 data-testid={`sidebar-${item.id}`}
-                className="relative z-10 p-3 w-full flex flex-col items-center justify-center gap-1 group"
+                className="relative z-10 p-3 w-full flex flex-row items-center justify-start gap-3 group"
               >
                 <item.icon 
                   size={18} 
-                  className={`transition-colors duration-200 ${
+                  className={`transition-colors duration-200 shrink-0 ${
                     hoveredItem === item.id || activeTab === item.id 
                       ? 'text-white' 
                       : 'text-zinc-500'
                   }`} 
                 />
                 
-                <span className="text-[9px] font-mono uppercase tracking-widest text-zinc-500 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity absolute right-14 bg-zinc-900 px-2 py-1 rounded border border-zinc-800 whitespace-nowrap z-50 pointer-events-none">
+                <span className={`text-[10px] font-mono uppercase tracking-widest transition-colors hidden xl:block ${
+                  hoveredItem === item.id || activeTab === item.id 
+                    ? 'text-white' 
+                    : 'text-zinc-500'
+                }`}>
                   {item.label}
                 </span>
               </button>
@@ -430,13 +436,19 @@ export default function Home() {
         <div className="flex items-center gap-3">
           {user ? (
             <div className="hidden md:flex items-center gap-3">
-              <Avatar className="h-7 w-7">
-                <AvatarImage src={user.profileImageUrl || undefined} alt={user.username || 'User'} className="object-cover" />
-                <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs">
-                  {user.username?.[0] || user.email?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-zinc-400 text-xs">{user.username || user.email}</span>
+              <button
+                onClick={handleNavigateAccount}
+                data-testid="btn-profile"
+                className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+              >
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.username || 'User'} className="object-cover" />
+                  <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs">
+                    {user.username?.[0] || user.email?.[0] || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-zinc-400 text-xs">{user.username || user.email}</span>
+              </button>
               <button 
                 onClick={() => logout()}
                 data-testid="btn-logout"
@@ -714,32 +726,46 @@ export default function Home() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           data-testid={`uploaded-file-${file.id}`}
-                          className="bg-zinc-900/50 border border-zinc-800 p-3 flex items-center gap-3"
+                          className={`bg-zinc-900/50 border p-3 flex items-center gap-3 ${
+                            file.existsInStorage ? 'border-zinc-800' : 'border-red-900/50'
+                          }`}
                         >
-                          <FileIcon size={16} className="text-zinc-500 shrink-0" />
+                          {file.existsInStorage ? (
+                            <FileIcon size={16} className="text-zinc-500 shrink-0" />
+                          ) : (
+                            <AlertTriangle size={16} className="text-red-500 shrink-0" />
+                          )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs text-zinc-300 truncate">{file.originalName}</p>
-                            <p className="text-[10px] text-zinc-600">{file.sizeFormatted}</p>
+                            <p className={`text-xs truncate ${file.existsInStorage ? 'text-zinc-300' : 'text-red-400'}`}>
+                              {file.originalName}
+                            </p>
+                            <p className="text-[10px] text-zinc-600">
+                              {file.existsInStorage ? file.sizeFormatted : 'File no longer exists in storage'}
+                            </p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              onClick={() => copyShareCode(file.shareCode)}
-                              className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors"
-                              data-testid={`copy-code-${file.id}`}
-                            >
-                              {copiedCode === file.shareCode ? (
-                                <><Check size={10} className="text-green-500" /> Copied</>
-                              ) : (
-                                <><Copy size={10} /> {file.shareCode}</>
-                              )}
-                            </button>
-                            <button
-                              onClick={() => downloadMutation.mutate(file.shareCode)}
-                              className="p-1 text-zinc-500 hover:text-white transition-colors"
-                              data-testid={`download-${file.id}`}
-                            >
-                              <Download size={14} />
-                            </button>
+                            {file.existsInStorage && (
+                              <>
+                                <button
+                                  onClick={() => copyShareCode(file.shareCode)}
+                                  className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors"
+                                  data-testid={`copy-code-${file.id}`}
+                                >
+                                  {copiedCode === file.shareCode ? (
+                                    <><Check size={10} className="text-green-500" /> Copied</>
+                                  ) : (
+                                    <><Copy size={10} /> {file.shareCode}</>
+                                  )}
+                                </button>
+                                <button
+                                  onClick={() => downloadMutation.mutate(file.shareCode)}
+                                  className="p-1 text-zinc-500 hover:text-white transition-colors"
+                                  data-testid={`download-${file.id}`}
+                                >
+                                  <Download size={14} />
+                                </button>
+                              </>
+                            )}
                             <button
                               onClick={() => deleteMutation.mutate(file.id)}
                               className="p-1 text-zinc-500 hover:text-red-500 transition-colors"

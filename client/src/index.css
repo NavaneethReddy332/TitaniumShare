@@ -141,12 +141,18 @@
   
   /* Sidebar Autohide Logic - RIGHT SIDE - positioned within content area */
   .sidebar-container {
-    @apply absolute right-0 top-0 bottom-0 w-20 z-50 transition-transform duration-300 ease-in-out;
+    @apply absolute right-0 top-0 bottom-0 w-14 xl:w-36 z-50 transition-transform duration-300 ease-in-out;
     transform: translateX(90%);
   }
   
   .sidebar-container:hover {
     transform: translateX(0);
+  }
+  
+  @media (min-width: 1280px) {
+    .sidebar-container {
+      transform: translateX(0);
+    }
   }
   
   /* Area to trigger the hover */
