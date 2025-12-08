@@ -139,18 +139,23 @@
     @apply border-zinc-600;
   }
   
-  /* Sidebar Autohide Logic - RIGHT SIDE */
+  /* Sidebar Autohide Logic - RIGHT SIDE - positioned within content area */
   .sidebar-container {
-    @apply fixed right-0 top-0 bottom-0 w-20 z-50 transition-transform duration-300 ease-in-out;
-    transform: translateX(90%); /* Hide most of it to the right */
+    @apply absolute right-0 top-0 bottom-0 w-20 z-50 transition-transform duration-300 ease-in-out;
+    transform: translateX(90%);
   }
   
   .sidebar-container:hover {
-    transform: translateX(0); /* Show on hover */
+    transform: translateX(0);
   }
   
   /* Area to trigger the hover */
   .sidebar-trigger-area {
-    @apply fixed right-0 top-0 bottom-0 w-4 z-40 bg-transparent;
+    @apply absolute right-0 top-0 bottom-0 w-4 z-40 bg-transparent;
+  }
+  
+  /* Content wrapper that contains the sidebar */
+  .content-with-sidebar {
+    @apply relative flex-1 flex overflow-hidden;
   }
 }

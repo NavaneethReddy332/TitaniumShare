@@ -181,11 +181,9 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-mono selection:bg-white selection:text-black flex flex-col overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} isAuthenticated={isAuthenticated} />
-
+    <div className="h-screen bg-black text-white font-mono selection:bg-white selection:text-black flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-900 pr-16 transition-all duration-300">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-900 transition-all duration-300 shrink-0">
         <TitaniumLogo />
         
         <nav className="hidden md:flex items-center gap-6 text-xs text-zinc-500">
@@ -234,8 +232,11 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col md:flex-row pr-4 transition-all duration-300">
+      {/* Main Content Area - contains sidebar */}
+      <div className="content-with-sidebar">
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} isAuthenticated={isAuthenticated} />
+        
+        <main className="flex-1 flex flex-col md:flex-row pr-4 transition-all duration-300 overflow-auto">
         
         {/* Left Panel - Controls */}
         <div className="w-full md:w-[26rem] border-r border-zinc-900 p-5 flex flex-col gap-6 z-10 bg-black">
@@ -403,9 +404,10 @@ export default function Home() {
           </div>
         </div>
       </main>
+      </div>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 bg-black z-20 pr-16 transition-all duration-300">
+      <footer className="border-t border-zinc-900 px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 bg-black z-20 transition-all duration-300 shrink-0">
         <div className="flex items-center gap-3">
           <AnimatePresence>
             {showLoginPrompt && (
