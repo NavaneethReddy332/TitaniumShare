@@ -109,7 +109,7 @@
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border cursor-none; /* Hide default cursor */
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
@@ -134,5 +134,20 @@
   
   .tech-border:hover {
     @apply border-zinc-600;
+  }
+  
+  /* Sidebar Autohide Logic */
+  .sidebar-container {
+    @apply fixed left-0 top-0 bottom-0 w-16 z-50 transition-transform duration-300 ease-in-out;
+    transform: translateX(-90%); /* Hide most of it */
+  }
+  
+  .sidebar-container:hover {
+    transform: translateX(0); /* Show on hover */
+  }
+  
+  /* Area to trigger the hover */
+  .sidebar-trigger-area {
+    @apply fixed left-0 top-0 bottom-0 w-4 z-40 bg-transparent;
   }
 }
