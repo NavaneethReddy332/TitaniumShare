@@ -172,7 +172,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col md:flex-row pr-4 transition-all duration-300">
         
         {/* Left Panel - Controls */}
-        <div className="w-full md:w-[450px] border-r border-zinc-900 p-6 flex flex-col gap-8 z-10 bg-black">
+        <div className="w-full md:w-[30rem] border-r border-zinc-900 p-6 flex flex-col gap-8 z-10 bg-black">
           
           <Tabs defaultValue="cloud" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="w-full bg-transparent border-b border-zinc-900 p-0 h-auto justify-start gap-8 rounded-none">

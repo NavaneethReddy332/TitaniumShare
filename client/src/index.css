@@ -108,8 +108,11 @@
 }
 
 @layer base {
+  html {
+    font-size: 13px;
+  }
   * {
-    @apply border-border;
+    @apply border-border cursor-none;
   }
   body {
     @apply font-sans antialiased bg-background text-foreground;
