@@ -18,8 +18,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [tab, setTab] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -48,7 +47,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   });
 
   const signupMutation = useMutation({
-    mutationFn: async (data: { email: string; password: string; firstName?: string; lastName?: string }) => {
+    mutationFn: async (data: { email: string; password: string; username?: string }) => {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -74,8 +73,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const resetForm = () => {
     setEmail("");
     setPassword("");
-    setFirstName("");
-    setLastName("");
+    setUsername("");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,7 +81,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     if (tab === "login") {
       loginMutation.mutate({ email, password });
     } else {
-      signupMutation.mutate({ email, password, firstName: firstName || undefined, lastName: lastName || undefined });
+      signupMutation.mutate({ email, password, username: username || undefined });
     }
   };
 
@@ -183,29 +181,16 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     transition={{ duration: 0.3, ease: "easeInOut" }}
                     className="overflow-hidden"
                   >
-                    <div className="grid grid-cols-2 gap-3 pb-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName" className="text-xs text-zinc-400 uppercase tracking-wider">First Name</Label>
-                        <Input
-                          id="firstName"
-                          data-testid="input-firstName"
-                          value={firstName}
-                          onChange={(e) => setFirstName(e.target.value)}
-                          className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                          placeholder="John"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName" className="text-xs text-zinc-400 uppercase tracking-wider">Last Name</Label>
-                        <Input
-                          id="lastName"
-                          data-testid="input-lastName"
-                          value={lastName}
-                          onChange={(e) => setLastName(e.target.value)}
-                          className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
-                          placeholder="Doe"
-                        />
-                      </div>
+                    <div className="space-y-2 pb-4">
+                      <Label htmlFor="username" className="text-xs text-zinc-400 uppercase tracking-wider">Username</Label>
+                      <Input
+                        id="username"
+                        data-testid="input-username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
+                        placeholder="Choose a username"
+                      />
                     </div>
                   </motion.div>
                 )}

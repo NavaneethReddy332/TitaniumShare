@@ -202,12 +202,12 @@ export default function Home() {
           {user ? (
             <div className="hidden md:flex items-center gap-3">
               <Avatar className="h-7 w-7">
-                <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || 'User'} className="object-cover" />
+                <AvatarImage src={user.profileImageUrl || undefined} alt={user.username || 'User'} className="object-cover" />
                 <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs">
-                  {user.firstName?.[0] || user.email?.[0] || 'U'}
+                  {user.username?.[0] || user.email?.[0] || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-zinc-400 text-xs">{user.firstName || user.email}</span>
+              <span className="text-zinc-400 text-xs">{user.username || user.email}</span>
               <button 
                 onClick={() => logout()}
                 data-testid="btn-logout"

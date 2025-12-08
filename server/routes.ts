@@ -8,8 +8,7 @@ import { z } from "zod";
 const signupSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
-  firstName: z.string().optional(),
-  lastName: z.string().optional(),
+  username: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -36,8 +35,7 @@ export async function registerRoutes(
       const user = await storage.createUser({
         email: data.email,
         passwordHash,
-        firstName: data.firstName || null,
-        lastName: data.lastName || null,
+        username: data.username || null,
         provider: "local",
         providerId: null,
         profileImageUrl: null,
@@ -47,8 +45,7 @@ export async function registerRoutes(
         {
           id: user.id,
           email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
+          username: user.username,
           profileImageUrl: user.profileImageUrl,
         },
         (err) => {
@@ -58,8 +55,7 @@ export async function registerRoutes(
           return res.json({
             id: user.id,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
+            username: user.username,
             profileImageUrl: user.profileImageUrl,
           });
         }

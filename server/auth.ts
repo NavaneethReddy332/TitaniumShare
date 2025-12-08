@@ -12,8 +12,7 @@ declare global {
     interface User {
       id: string;
       email: string;
-      firstName?: string | null;
-      lastName?: string | null;
+      username?: string | null;
       profileImageUrl?: string | null;
     }
   }
@@ -75,8 +74,7 @@ export async function setupAuth(app: Express) {
           return done(null, {
             id: user.id,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
+            username: user.username,
             profileImageUrl: user.profileImageUrl,
           });
         } catch (error) {
@@ -109,8 +107,7 @@ export async function setupAuth(app: Express) {
             if (!user) {
               user = await storage.createUser({
                 email,
-                firstName: profile.name?.givenName || null,
-                lastName: profile.name?.familyName || null,
+                username: profile.displayName || profile.name?.givenName || null,
                 profileImageUrl: profile.photos?.[0]?.value || null,
                 provider: "google",
                 providerId: profile.id,
@@ -128,8 +125,7 @@ export async function setupAuth(app: Express) {
             return done(null, {
               id: user!.id,
               email: user!.email,
-              firstName: user!.firstName,
-              lastName: user!.lastName,
+              username: user!.username,
               profileImageUrl: user!.profileImageUrl,
             });
           } catch (error) {
@@ -153,8 +149,7 @@ export async function setupAuth(app: Express) {
       done(null, {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        username: user.username,
         profileImageUrl: user.profileImageUrl,
       });
     } catch (error) {
