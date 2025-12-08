@@ -3,13 +3,29 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/useAuth";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import Landing from "@/pages/landing";
 
 function Router() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-zinc-600 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      {!isAuthenticated ? (
+        <Route path="/" component={Landing} />
+      ) : (
+        <Route path="/" component={Home} />
+      )}
       <Route component={NotFound} />
     </Switch>
   );

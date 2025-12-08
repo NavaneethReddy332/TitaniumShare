@@ -21,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const NETWORK_STATS = {
   down: "80.7 Mbps",
@@ -144,12 +146,13 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
                transition={{ type: "spring", stiffness: 350, damping: 25 }}
              />
           )}
-          <button 
+          <a 
+            href="/api/logout"
             data-testid="sidebar-logout"
             className="relative z-10 p-3 w-full flex justify-center text-zinc-500 hover:text-red-500 transition-colors"
           >
             <LogOut size={18} />
-          </button>
+          </a>
         </div>
       </div>
     </>
@@ -157,10 +160,11 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
 }
 
 export default function Home() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("cloud");
   const [files, setFiles] = useState<File[]>([]);
   const [receiveCode, setReceiveCode] = useState("");
-  const [showLoginPrompt, setShowLoginPrompt] = useState(true);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [...prev, ...acceptedFiles]);
@@ -191,10 +195,24 @@ export default function Home() {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Button data-testid="btn-login" variant="ghost" size="sm" className="hidden md:flex text-zinc-400 hover:text-white gap-2 text-xs">
-            <User size={14} />
-            LOGIN
-          </Button>
+          {user && (
+            <div className="hidden md:flex items-center gap-3">
+              <Avatar className="h-7 w-7">
+                <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || 'User'} className="object-cover" />
+                <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs">
+                  {user.firstName?.[0] || user.email?.[0] || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-zinc-400 text-xs">{user.firstName || user.email}</span>
+              <a 
+                href="/api/logout" 
+                data-testid="btn-logout"
+                className="text-zinc-500 hover:text-red-500 transition-colors"
+              >
+                <LogOut size={14} />
+              </a>
+            </div>
+          )}
           <Button variant="ghost" size="icon" className="md:hidden">
             <Menu size={18} />
           </Button>
