@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
-import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Cloud, 
   Share2, 
@@ -13,10 +13,10 @@ import {
   User,
   Send,
   Download,
-  Settings,
   MessageSquare,
   Info,
-  LogOut
+  LogOut,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,66 +29,10 @@ const NETWORK_STATS = {
   up: "38.3 Mbps"
 };
 
-// Custom Cursor Component
-function CustomCursor() {
-  const cursorX = useMotionValue(-100);
-  const cursorY = useMotionValue(-100);
-  
-  const springConfig = { damping: 25, stiffness: 300, mass: 0.5 };
-  const cursorXSpring = useSpring(cursorX, springConfig);
-  const cursorYSpring = useSpring(cursorY, springConfig);
-  
-  const [isHovering, setIsHovering] = useState(false);
-
-  useEffect(() => {
-    const moveCursor = (e: MouseEvent) => {
-      cursorX.set(e.clientX - 10);
-      cursorY.set(e.clientY - 10);
-    };
-
-    const handleMouseOver = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.closest('[role="button"]') || target.closest('.interactive')) {
-        setIsHovering(true);
-      } else {
-        setIsHovering(false);
-      }
-    };
-
-    window.addEventListener("mousemove", moveCursor);
-    window.addEventListener("mouseover", handleMouseOver);
-
-    return () => {
-      window.removeEventListener("mousemove", moveCursor);
-      window.removeEventListener("mouseover", handleMouseOver);
-    };
-  }, [cursorX, cursorY]);
-
-  return (
-    <>
-      <motion.div
-        className="fixed top-0 left-0 w-5 h-5 bg-white rounded-full mix-blend-difference pointer-events-none z-[9999]"
-        style={{
-          x: cursorXSpring,
-          y: cursorYSpring,
-          scale: isHovering ? 2.5 : 1,
-        }}
-      />
-      <motion.div
-         className="fixed top-0 left-0 w-2 h-2 bg-white rounded-full pointer-events-none z-[9999]"
-         style={{
-           x: cursorX,
-           y: cursorY,
-           translateX: 6, 
-           translateY: 6
-         }}
-      />
-    </>
-  );
-}
-
-// Sidebar Component
+// Sidebar Component with Following Hover Animation
 function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+
   const menuItems = [
     { id: 'send', icon: Send, label: 'Send', action: () => setActiveTab('cloud') },
     { id: 'receive', icon: Download, label: 'Receive', action: () => setActiveTab('cloud') },
@@ -100,30 +44,70 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
   return (
     <>
       <div className="sidebar-trigger-area" />
-      <div className="sidebar-container bg-black/90 backdrop-blur-xl border-r border-zinc-800 flex flex-col items-center py-8">
+      <div className="sidebar-container bg-black/90 backdrop-blur-xl border-l border-zinc-800 flex flex-col items-center py-8">
         <div className="mb-8 w-8 h-8 bg-white rotate-45 flex-shrink-0" />
         
-        <nav className="flex-1 flex flex-col gap-6 w-full px-2">
+        <nav className="flex-1 flex flex-col gap-4 w-full px-2">
           {menuItems.map((item) => (
-            <button
+            <div 
               key={item.id}
-              onClick={item.action}
-              className="group flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-zinc-900 transition-colors interactive w-full"
+              className="relative flex items-center justify-center w-full"
+              onMouseEnter={() => setHoveredItem(item.id)}
+              onMouseLeave={() => setHoveredItem(null)}
             >
-              <item.icon 
-                size={20} 
-                className={`transition-colors ${activeTab === item.id ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} 
-              />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity absolute left-14 bg-zinc-900 px-2 py-1 rounded border border-zinc-800 whitespace-nowrap z-50">
-                {item.label}
-              </span>
-            </button>
+              {/* Following Background Animation */}
+              {hoveredItem === item.id && (
+                <motion.div
+                  layoutId="sidebar-hover-bg"
+                  className="absolute inset-0 bg-zinc-800/80 rounded-lg"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              
+              <button
+                onClick={item.action}
+                className="relative z-10 p-3 w-full flex flex-col items-center justify-center gap-1 group"
+              >
+                <item.icon 
+                  size={20} 
+                  className={`transition-colors duration-200 ${
+                    hoveredItem === item.id || activeTab === item.id 
+                      ? 'text-white' 
+                      : 'text-zinc-500'
+                  }`} 
+                />
+                
+                {/* Tooltip on Left (since sidebar is on right) */}
+                <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity absolute right-16 bg-zinc-900 px-2 py-1 rounded border border-zinc-800 whitespace-nowrap z-50 pointer-events-none">
+                  {item.label}
+                </span>
+              </button>
+            </div>
           ))}
         </nav>
 
-        <button className="mt-auto p-2 text-zinc-500 hover:text-red-500 transition-colors interactive">
-          <LogOut size={20} />
-        </button>
+        <div 
+          className="relative w-full px-2"
+          onMouseEnter={() => setHoveredItem('logout')}
+          onMouseLeave={() => setHoveredItem(null)}
+        >
+          {hoveredItem === 'logout' && (
+             <motion.div
+               layoutId="sidebar-hover-bg"
+               className="absolute inset-0 bg-red-900/20 rounded-lg mx-2"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+             />
+          )}
+          <button className="relative z-10 mt-auto p-3 w-full flex justify-center text-zinc-500 hover:text-red-500 transition-colors">
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
     </>
   );
@@ -146,38 +130,37 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono selection:bg-white selection:text-black flex flex-col overflow-hidden">
-      <CustomCursor />
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-900 pl-16">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-900 pr-20 transition-all duration-300">
         <div className="flex items-center gap-2">
           <span className="text-lg font-bold tracking-tight font-sans">Aero Send</span>
         </div>
         
         <nav className="hidden md:flex items-center gap-8 text-sm text-zinc-500">
-          <button className="hover:text-white transition-colors interactive">SEND</button>
+          <button className="hover:text-white transition-colors">SEND</button>
           <span className="text-zinc-800">/</span>
-          <button className="hover:text-white transition-colors interactive">RECEIVE</button>
+          <button className="hover:text-white transition-colors">RECEIVE</button>
           <span className="text-zinc-800">/</span>
-          <button className="border border-zinc-700 px-3 py-1 text-zinc-300 hover:bg-zinc-900 transition-colors interactive">
+          <button className="border border-zinc-700 px-3 py-1 text-zinc-300 hover:bg-zinc-900 transition-colors">
             TEMP MAIL
           </button>
         </nav>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" className="hidden md:flex text-zinc-400 hover:text-white gap-2 interactive">
+          <Button variant="ghost" size="sm" className="hidden md:flex text-zinc-400 hover:text-white gap-2">
             <User size={16} />
             LOGIN
           </Button>
-          <Button variant="ghost" size="icon" className="md:hidden interactive">
+          <Button variant="ghost" size="icon" className="md:hidden">
             <Menu size={20} />
           </Button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col md:flex-row pl-4 transition-all duration-300">
+      <main className="flex-1 flex flex-col md:flex-row pr-4 transition-all duration-300">
         
         {/* Left Panel - Controls */}
         <div className="w-full md:w-[450px] border-r border-zinc-900 p-6 flex flex-col gap-8 z-10 bg-black">
@@ -186,13 +169,13 @@ export default function Home() {
             <TabsList className="w-full bg-transparent border-b border-zinc-900 p-0 h-auto justify-start gap-8 rounded-none">
               <TabsTrigger 
                 value="p2p" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-xs hover:text-zinc-300 transition-colors interactive"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-xs hover:text-zinc-300 transition-colors"
               >
                 P2P Transfer
               </TabsTrigger>
               <TabsTrigger 
                 value="cloud" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-xs hover:text-zinc-300 transition-colors interactive"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-xs hover:text-zinc-300 transition-colors"
               >
                 Cloud Upload
               </TabsTrigger>
@@ -211,7 +194,7 @@ export default function Home() {
                   className={`
                     border border-dashed border-zinc-800 rounded-none p-8 
                     flex flex-col items-center justify-center gap-4 
-                    transition-all duration-300 cursor-none interactive
+                    transition-all duration-300 cursor-pointer
                     hover:border-zinc-600 hover:bg-zinc-900/30
                     ${isDragActive ? 'border-white bg-zinc-900/50' : ''}
                   `}
@@ -225,7 +208,7 @@ export default function Home() {
 
                 <Button 
                   variant="outline" 
-                  className="w-full rounded-none border-zinc-800 bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-700 h-12 font-mono text-xs uppercase tracking-widest interactive"
+                  className="w-full rounded-none border-zinc-800 bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-700 h-12 font-mono text-xs uppercase tracking-widest"
                 >
                   <FolderOpen size={16} className="mr-2" />
                   Select File(s)
@@ -243,12 +226,12 @@ export default function Home() {
                       {files.map((file, idx) => (
                         <div key={`${file.name}-${idx}`} className="flex items-center justify-between p-3 bg-zinc-900/50 border border-zinc-800 text-xs">
                           <span className="truncate max-w-[200px] text-zinc-300">{file.name}</span>
-                          <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500 interactive">
+                          <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500">
                             <X size={14} />
                           </button>
                         </div>
                       ))}
-                      <Button className="w-full rounded-none bg-white text-black hover:bg-zinc-200 mt-2 font-mono text-xs uppercase font-bold interactive">
+                      <Button className="w-full rounded-none bg-white text-black hover:bg-zinc-200 mt-2 font-mono text-xs uppercase font-bold">
                         Start Upload
                       </Button>
                     </motion.div>
@@ -269,9 +252,9 @@ export default function Home() {
                     value={receiveCode}
                     onChange={(e) => setReceiveCode(e.target.value)}
                     placeholder="6/8 digit code" 
-                    className="rounded-none border-zinc-800 bg-transparent text-center font-mono text-sm h-12 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700 interactive"
+                    className="rounded-none border-zinc-800 bg-transparent text-center font-mono text-sm h-12 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700"
                   />
-                  <Button className="rounded-none h-12 w-12 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800 interactive">
+                  <Button className="rounded-none h-12 w-12 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800">
                     <ArrowRight size={16} className="text-zinc-400" />
                   </Button>
                 </div>
@@ -322,7 +305,7 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-black z-20 pl-16">
+      <footer className="border-t border-zinc-900 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 bg-black z-20 pr-20 transition-all duration-300">
         <div className="flex items-center gap-4">
           <AnimatePresence>
             <motion.div 
@@ -335,11 +318,11 @@ export default function Home() {
                 <p className="text-xs text-zinc-400 leading-snug">
                   Sign in to track your file transfers and access them later.
                 </p>
-                <button className="text-[10px] font-bold uppercase tracking-wider text-white mt-1 hover:underline interactive">
+                <button className="text-[10px] font-bold uppercase tracking-wider text-white mt-1 hover:underline">
                   Login Now
                 </button>
               </div>
-              <button className="text-zinc-600 hover:text-white interactive">
+              <button className="text-zinc-600 hover:text-white">
                 <X size={14} />
               </button>
             </motion.div>
