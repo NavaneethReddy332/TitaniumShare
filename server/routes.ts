@@ -8,16 +8,18 @@ import { z } from "zod";
 import { uploadFile, getDownloadUrl, deleteFile, generateFileKey, formatFileSize } from "./storj";
 
 const ALLOWED_MIME_TYPES = [
-  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-  'application/pdf', 'application/zip', 'application/x-zip-compressed',
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp', 'image/tiff',
+  'application/pdf', 'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed',
+  'application/x-7z-compressed', 'application/gzip', 'application/x-tar',
   'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript',
-  'application/json', 'application/xml',
-  'audio/mpeg', 'audio/wav', 'audio/ogg',
-  'video/mp4', 'video/webm', 'video/ogg',
-  'font/ttf', 'font/woff', 'font/woff2',
+  'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript', 'text/markdown',
+  'application/json', 'application/xml', 'application/javascript',
+  'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/aac', 'audio/flac',
+  'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo',
+  'font/ttf', 'font/woff', 'font/woff2', 'font/otf',
+  'application/octet-stream',
 ];
 
 const upload = multer({
