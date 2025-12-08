@@ -1,5 +1,9 @@
 # Titanium - Secure Cloud & P2P File Sharing
 
+## IMPORTANT: DO NOT CHANGE THE DATABASE
+
+The project uses Turso (SQLite-based edge database) intentionally. DO NOT migrate or switch to PostgreSQL or any other database. The Turso configuration and credentials are used on purpose.
+
 ## Overview
 
 Titanium is a modern web application for secure file sharing, supporting both cloud-based and peer-to-peer (P2P) transfer methods. The application provides a full-stack solution with user authentication, session management, and a polished dark-themed user interface built with React and shadcn/ui components.
