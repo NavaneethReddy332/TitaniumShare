@@ -281,6 +281,38 @@ export default function Home() {
     setFilesToUpload(filesToUpload.filter(f => f.name !== name));
   };
 
+  const uploadWithProgress = (file: File): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append('file', file);
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(prev => 
+            prev.map(p => p.fileName === file.name ? { ...p, progress: percent } : p)
+          );
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error('Upload failed'));
+        }
+      });
+
+      xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+      xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+
+      xhr.open('POST', '/api/files/upload');
+      xhr.withCredentials = true;
+      xhr.send(formData);
+    });
+  };
+
   const handleUploadAll = async () => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
@@ -291,19 +323,16 @@ export default function Home() {
     setFilesToUpload([]);
 
     for (const file of filesToProcess) {
-      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 30, status: 'uploading' }]);
+      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 0, status: 'uploading' }]);
       
       try {
-        setUploadProgress(prev => 
-          prev.map(p => p.fileName === file.name && p.status === 'uploading' ? { ...p, progress: 60 } : p)
-        );
-        
-        await uploadMutation.mutateAsync(file);
+        await uploadWithProgress(file);
         
         setUploadProgress(prev => 
           prev.map(p => p.fileName === file.name ? { ...p, progress: 100, status: 'complete' } : p)
         );
         
+        queryClient.invalidateQueries({ queryKey: ['/api/files'] });
         toast({ title: `Uploaded ${file.name}` });
       } catch {
         setUploadProgress(prev => 
@@ -507,13 +536,14 @@ export default function Home() {
                               <div className="flex items-center justify-between text-[10px] mb-1">
                                 <span className="truncate max-w-[180px] text-zinc-300">{p.fileName}</span>
                                 <span className={`${p.status === 'complete' ? 'text-green-500' : p.status === 'error' ? 'text-red-500' : 'text-zinc-500'}`}>
-                                  {p.status === 'complete' ? 'Done' : p.status === 'error' ? 'Failed' : 'Uploading...'}
+                                  {p.status === 'complete' ? 'Done' : p.status === 'error' ? 'Failed' : `${p.progress}%`}
                                 </span>
                               </div>
                               <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
                                 <motion.div 
                                   initial={{ width: 0 }}
-                                  animate={{ width: p.status === 'complete' ? '100%' : p.status === 'error' ? '100%' : '60%' }}
+                                  animate={{ width: `${p.progress}%` }}
+                                  transition={{ duration: 0.2 }}
                                   className={`h-full ${p.status === 'complete' ? 'bg-green-500' : p.status === 'error' ? 'bg-red-500' : 'bg-white'}`}
                                 />
                               </div>
