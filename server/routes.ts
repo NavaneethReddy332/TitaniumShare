@@ -71,6 +71,12 @@ export async function registerRoutes(
     try {
       const data = signupSchema.parse(req.body);
       
+      // Check if email is banned from recent account deletion
+      const isBanned = await storage.isEmailBanned(data.email);
+      if (isBanned) {
+        return res.status(403).json({ message: "This email cannot be used to create an account for 5 days after deletion" });
+      }
+      
       const existingUser = await storage.getUserByEmail(data.email);
       if (existingUser) {
         return res.status(400).json({ message: "Email already registered" });
@@ -402,6 +408,152 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete error:", error);
       res.status(500).json({ message: "Delete failed" });
+    }
+  });
+
+  // Update username
+  app.patch("/api/account/username", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const { username } = req.body;
+
+      if (!username || typeof username !== 'string' || username.length < 2) {
+        return res.status(400).json({ message: "Username must be at least 2 characters" });
+      }
+
+      const updated = await storage.updateUser(user.id, { username: username.trim() });
+      if (!updated) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({ message: "Username updated", username: updated.username });
+    } catch (error) {
+      console.error("Update username error:", error);
+      res.status(500).json({ message: "Failed to update username" });
+    }
+  });
+
+  // Change password
+  app.post("/api/account/change-password", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const { currentPassword, newPassword } = req.body;
+
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ message: "New password must be at least 6 characters" });
+      }
+
+      const fullUser = await storage.getUser(user.id);
+      if (!fullUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // If user has a password, verify current password
+      if (fullUser.passwordHash) {
+        if (!currentPassword) {
+          return res.status(400).json({ message: "Current password is required" });
+        }
+        const bcrypt = await import('bcrypt');
+        const isValid = await bcrypt.compare(currentPassword, fullUser.passwordHash);
+        if (!isValid) {
+          return res.status(401).json({ message: "Current password is incorrect" });
+        }
+      }
+
+      const newHash = await hashPassword(newPassword);
+      await storage.updateUser(user.id, { passwordHash: newHash });
+
+      res.json({ message: "Password changed successfully" });
+    } catch (error) {
+      console.error("Change password error:", error);
+      res.status(500).json({ message: "Failed to change password" });
+    }
+  });
+
+  // Get storage usage
+  app.get("/api/account/storage", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const usageBytes = await storage.getUserStorageUsage(user.id);
+      const files = await storage.getFilesByUserId(user.id);
+      const totalLimit = 1024 * 1024 * 1024; // 1GB limit
+
+      res.json({
+        usedBytes: usageBytes,
+        usedFormatted: formatFileSize(usageBytes),
+        totalBytes: totalLimit,
+        totalFormatted: formatFileSize(totalLimit),
+        percentage: Math.round((usageBytes / totalLimit) * 100),
+        fileCount: files.length,
+      });
+    } catch (error) {
+      console.error("Storage usage error:", error);
+      res.status(500).json({ message: "Failed to get storage usage" });
+    }
+  });
+
+  // Get recent activity
+  app.get("/api/account/activity", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const files = await storage.getFilesByUserId(user.id);
+      
+      // Return recent files as activity
+      const activity = files.slice(0, 10).map(f => ({
+        id: f.id,
+        type: 'upload',
+        fileName: f.originalName,
+        size: f.size,
+        sizeFormatted: formatFileSize(f.size),
+        downloadCount: f.downloadCount || 0,
+        createdAt: f.createdAt,
+      }));
+
+      res.json(activity);
+    } catch (error) {
+      console.error("Activity error:", error);
+      res.status(500).json({ message: "Failed to get activity" });
+    }
+  });
+
+  // Delete account
+  app.delete("/api/account", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string; email: string };
+      const { confirmEmail } = req.body;
+
+      if (confirmEmail !== user.email) {
+        return res.status(400).json({ message: "Email confirmation does not match" });
+      }
+
+      // Delete all user files from Storj
+      const userFiles = await storage.getFilesByUserId(user.id);
+      for (const file of userFiles) {
+        try {
+          await deleteFile(file.storageKey);
+        } catch (e) {
+          console.error("Failed to delete file from storage:", e);
+        }
+      }
+
+      // Delete files from database
+      await storage.deleteFilesByUserId(user.id);
+
+      // Add to deleted accounts with 5-day ban
+      await storage.addDeletedAccount(user.email, 5);
+
+      // Delete user
+      await storage.deleteUser(user.id);
+
+      // Logout
+      req.logout((err) => {
+        if (err) console.error("Logout error:", err);
+      });
+
+      res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Delete account error:", error);
+      res.status(500).json({ message: "Failed to delete account" });
     }
   });
 

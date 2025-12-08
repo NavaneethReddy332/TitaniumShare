@@ -10,7 +10,11 @@ import {
   Settings,
   LogOut,
   ChevronRight,
-  Wifi
+  Wifi,
+  AlertTriangle,
+  Upload,
+  Download,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,9 +23,12 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
-type TabType = 'overview' | 'account' | 'security' | 'billing';
+type TabType = 'overview' | 'account' | 'security' | 'billing' | 'danger';
 
 interface NavItemProps {
   id: TabType;
@@ -111,7 +118,7 @@ function UsageCard({ title, percentage, used, total, status, color = 'cyan', tes
   );
 }
 
-interface ActivityItemProps {
+interface ActivityItemRowProps {
   icon: React.ElementType;
   title: string;
   subtitle: string;
@@ -119,7 +126,7 @@ interface ActivityItemProps {
   testId?: string;
 }
 
-function ActivityItem({ icon: Icon, title, subtitle, status, testId }: ActivityItemProps) {
+function ActivityItemRow({ icon: Icon, title, subtitle, status, testId }: ActivityItemRowProps) {
   return (
     <div className="flex items-center justify-between py-4 border-b border-zinc-800 last:border-b-0" data-testid={testId}>
       <div className="flex items-center gap-4">
@@ -127,7 +134,7 @@ function ActivityItem({ icon: Icon, title, subtitle, status, testId }: ActivityI
           <Icon size={16} className="text-zinc-500" />
         </div>
         <div>
-          <h4 className="text-sm font-medium text-white">{title}</h4>
+          <h4 className="text-sm font-medium text-white truncate max-w-[200px]">{title}</h4>
           <p className="text-[11px] text-zinc-500 mt-0.5">{subtitle}</p>
         </div>
       </div>
@@ -138,9 +145,50 @@ function ActivityItem({ icon: Icon, title, subtitle, status, testId }: ActivityI
   );
 }
 
+interface StorageData {
+  usedBytes: number;
+  usedFormatted: string;
+  totalBytes: number;
+  totalFormatted: string;
+  percentage: number;
+  fileCount: number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  fileName: string;
+  size: number;
+  sizeFormatted: string;
+  downloadCount: number;
+  createdAt: string;
+}
+
 function OverviewTab() {
   const { user } = useAuth();
   
+  const { data: storageData, isLoading: storageLoading } = useQuery<StorageData>({
+    queryKey: ['/api/account/storage'],
+  });
+
+  const { data: activityData, isLoading: activityLoading } = useQuery<ActivityItem[]>({
+    queryKey: ['/api/account/activity'],
+  });
+  
+  const formatTimeAgo = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -153,15 +201,15 @@ function OverviewTab() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
         <UsageCard 
           title="Cloud Storage" 
-          percentage={0} 
-          used="0MB Used" 
-          total="1GB Total"
+          percentage={storageData?.percentage || 0} 
+          used={storageLoading ? "Loading..." : (storageData?.usedFormatted || "0 B") + " Used"} 
+          total={storageData?.totalFormatted || "1 GB"} 
           testId="card-cloud-storage"
         />
         <UsageCard 
           title="Transfers" 
-          percentage={0} 
-          used="0 Files" 
+          percentage={Math.min((storageData?.fileCount || 0) * 10, 100)} 
+          used={`${storageData?.fileCount || 0} Files`} 
           total="This Month"
           status="Ready"
           color="green"
@@ -178,18 +226,58 @@ function OverviewTab() {
           </span>
         </div>
         
-        <div className="text-center py-8">
-          <Activity size={32} className="text-zinc-700 mx-auto mb-3" />
-          <p className="text-sm text-zinc-500">No recent activity</p>
-          <p className="text-[11px] text-zinc-600 mt-1">Your file transfers will appear here</p>
-        </div>
+        {activityLoading ? (
+          <div className="text-center py-8">
+            <Loader2 size={24} className="text-zinc-500 mx-auto animate-spin" />
+          </div>
+        ) : activityData && activityData.length > 0 ? (
+          <div>
+            {activityData.map((item) => (
+              <ActivityItemRow
+                key={item.id}
+                icon={Upload}
+                title={item.fileName}
+                subtitle={`${item.sizeFormatted} - ${item.downloadCount} downloads`}
+                status={formatTimeAgo(item.createdAt)}
+                testId={`activity-${item.id}`}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <Activity size={32} className="text-zinc-700 mx-auto mb-3" />
+            <p className="text-sm text-zinc-500">No recent activity</p>
+            <p className="text-[11px] text-zinc-600 mt-1">Your file transfers will appear here</p>
+          </div>
+        )}
       </div>
     </motion.div>
   );
 }
 
 function AccountTab() {
-  const { user } = useAuth();
+  const { user, refetch } = useAuth();
+  const { toast } = useToast();
+  const [username, setUsername] = useState(user?.username || '');
+  
+  const updateUsernameMutation = useMutation({
+    mutationFn: async (newUsername: string) => {
+      const res = await apiRequest('PATCH', '/api/account/username', { username: newUsername });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to update username');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Username updated", description: "Your display name has been changed." });
+      refetch();
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
   
   return (
     <motion.div
@@ -222,7 +310,8 @@ function AccountTab() {
               Display Name
             </label>
             <Input 
-              defaultValue={user?.username || ''}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               data-testid="input-display-name"
               className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
             />
@@ -243,8 +332,15 @@ function AccountTab() {
         <div className="mt-6 flex justify-end">
           <Button 
             data-testid="btn-save-profile"
+            onClick={() => updateUsernameMutation.mutate(username)}
+            disabled={updateUsernameMutation.isPending || username === user?.username}
           >
-            Save Changes
+            {updateUsernameMutation.isPending ? (
+              <>
+                <Loader2 size={14} className="mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : 'Save Changes'}
           </Button>
         </div>
       </div>
@@ -276,6 +372,42 @@ function AccountTab() {
 
 function SecurityTab() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const res = await apiRequest('POST', '/api/account/change-password', data);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to change password');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password changed", description: "Your password has been updated successfully." });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handlePasswordChange = () => {
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    changePasswordMutation.mutate({ currentPassword, newPassword });
+  };
 
   return (
     <motion.div
@@ -307,6 +439,66 @@ function SecurityTab() {
             <span className="text-xs text-zinc-400">
               {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
             </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
+        <h3 className="text-sm font-semibold text-white mb-5">Change Password</h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+              Current Password
+            </label>
+            <Input 
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              data-testid="input-current-password"
+              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+              New Password
+            </label>
+            <Input 
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter new password"
+              data-testid="input-new-password"
+              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+              Confirm New Password
+            </label>
+            <Input 
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              data-testid="input-confirm-password"
+              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+            />
+          </div>
+          <div className="pt-2">
+            <Button 
+              onClick={handlePasswordChange}
+              disabled={changePasswordMutation.isPending || !newPassword || !confirmPassword}
+              data-testid="btn-change-password"
+            >
+              {changePasswordMutation.isPending ? (
+                <>
+                  <Loader2 size={14} className="mr-2 animate-spin" />
+                  Changing...
+                </>
+              ) : 'Change Password'}
+            </Button>
           </div>
         </div>
       </div>
@@ -392,6 +584,119 @@ function BillingTab() {
   );
 }
 
+function DangerZoneTab() {
+  const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const [, navigate] = useLocation();
+  const [confirmEmail, setConfirmEmail] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('DELETE', '/api/account', { confirmEmail });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Failed to delete account');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
+      logout();
+      navigate('/');
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h1 className="text-xl font-semibold text-white mb-1">Danger Zone</h1>
+      <p className="text-xs text-zinc-500 mb-8">Irreversible and destructive actions.</p>
+
+      <div className="bg-zinc-950 border border-red-900/50 rounded-md p-5">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-red-500/10 rounded-md flex items-center justify-center">
+            <AlertTriangle size={20} className="text-red-500" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-white">Delete Account</h3>
+            <p className="text-[11px] text-zinc-500">Permanently delete your account and all data</p>
+          </div>
+        </div>
+
+        <div className="bg-red-500/5 border border-red-900/30 rounded-md p-4 mb-5">
+          <h4 className="text-xs font-semibold text-red-400 mb-2 uppercase tracking-wider">Warning</h4>
+          <ul className="text-xs text-zinc-400 space-y-1">
+            <li>All your files will be permanently deleted</li>
+            <li>Your account data will be erased</li>
+            <li>You will NOT be able to create a new account with this email for 5 days</li>
+            <li>This action cannot be undone</li>
+          </ul>
+        </div>
+
+        {!showConfirm ? (
+          <Button 
+            variant="destructive"
+            onClick={() => setShowConfirm(true)}
+            data-testid="btn-show-delete-confirm"
+            className="w-full"
+          >
+            Delete My Account
+          </Button>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+                Type your email to confirm: <span className="text-red-400">{user?.email}</span>
+              </label>
+              <Input 
+                value={confirmEmail}
+                onChange={(e) => setConfirmEmail(e.target.value)}
+                placeholder="Enter your email"
+                data-testid="input-confirm-delete-email"
+                className="bg-black border-red-900/50 text-white h-10 focus-visible:ring-0 focus-visible:border-red-500"
+              />
+            </div>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline"
+                onClick={() => {
+                  setShowConfirm(false);
+                  setConfirmEmail('');
+                }}
+                className="flex-1"
+                data-testid="btn-cancel-delete"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive"
+                onClick={() => deleteAccountMutation.mutate()}
+                disabled={deleteAccountMutation.isPending || confirmEmail !== user?.email}
+                className="flex-1"
+                data-testid="btn-confirm-delete"
+              >
+                {deleteAccountMutation.isPending ? (
+                  <>
+                    <Loader2 size={14} className="mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : 'Permanently Delete'}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Account() {
   const { user, logout, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
@@ -402,6 +707,7 @@ export default function Account() {
     { id: 'account', icon: User, label: 'Account' },
     { id: 'security', icon: Shield, label: 'Security' },
     { id: 'billing', icon: CreditCard, label: 'Billing' },
+    { id: 'danger', icon: AlertTriangle, label: 'Danger Zone' },
   ];
 
   const renderContent = () => {
@@ -414,6 +720,8 @@ export default function Account() {
         return <SecurityTab />;
       case 'billing':
         return <BillingTab />;
+      case 'danger':
+        return <DangerZoneTab />;
       default:
         return <OverviewTab />;
     }

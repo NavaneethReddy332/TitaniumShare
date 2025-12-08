@@ -60,3 +60,12 @@ export const insertFileSchema = createInsertSchema(files).omit({
 
 export type InsertFile = z.infer<typeof insertFileSchema>;
 export type File = typeof files.$inferSelect;
+
+export const deletedAccounts = sqliteTable("deleted_accounts", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  email: text("email").notNull(),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  banExpiresAt: integer("ban_expires_at", { mode: "timestamp" }).notNull(),
+});
+
+export type DeletedAccount = typeof deletedAccounts.$inferSelect;
