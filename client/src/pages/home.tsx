@@ -35,6 +35,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AuthModal } from "@/components/auth-modal";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { QRCodeSVG } from "qrcode.react";
+import { Link2 } from "lucide-react";
 
 interface UploadedFile {
   id: string;
@@ -317,6 +319,8 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [lastUploadedFile, setLastUploadedFile] = useState<UploadedFile | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
     queryKey: ['/api/files'],
@@ -399,7 +403,7 @@ export default function Home() {
     setFilesToUpload(filesToUpload.filter(f => f.name !== name));
   };
 
-  const uploadWithProgress = async (file: File): Promise<void> => {
+  const uploadWithProgress = async (file: File): Promise<UploadedFile> => {
     // Step 1: Get presigned URL from server
     const presignResponse = await fetch('/api/files/presign', {
       method: 'POST',
@@ -464,6 +468,9 @@ export default function Home() {
     if (!confirmResponse.ok) {
       throw new Error('Failed to confirm upload');
     }
+
+    const uploadedFileData = await confirmResponse.json();
+    return uploadedFileData;
   };
 
   const handleUploadAll = async () => {
@@ -484,20 +491,23 @@ export default function Home() {
     // Upload all files in parallel for maximum speed
     const uploadPromises = filesToProcess.map(async (file) => {
       try {
-        await uploadWithProgress(file);
+        const uploadedFileData = await uploadWithProgress(file);
         
         setUploadProgress(prev => 
           prev.map(p => p.fileName === file.name ? { ...p, progress: 100, status: 'complete' } : p)
         );
         
+        // Set the last uploaded file to show in the center panel
+        setLastUploadedFile(uploadedFileData);
+        
         toast({ title: `Uploaded ${file.name}` });
-        return { success: true, file };
+        return { success: true, file, data: uploadedFileData };
       } catch {
         setUploadProgress(prev => 
           prev.map(p => p.fileName === file.name ? { ...p, status: 'error' } : p)
         );
         toast({ title: `Failed to upload ${file.name}`, variant: "destructive" });
-        return { success: false, file };
+        return { success: false, file, data: null };
       }
     });
 
@@ -513,6 +523,25 @@ export default function Home() {
     navigator.clipboard.writeText(code);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const getDownloadUrl = (shareCode: string) => {
+    return `${window.location.origin}/download/${shareCode}`;
+  };
+
+  const copyDownloadLink = (shareCode: string) => {
+    navigator.clipboard.writeText(getDownloadUrl(shareCode));
+    setCopiedLink(true);
+    toast({ title: "Download link copied!" });
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleDownloadFile = (shareCode: string) => {
+    downloadMutation.mutate(shareCode);
+  };
+
+  const clearLastUploadedFile = () => {
+    setLastUploadedFile(null);
   };
 
   const handleReceive = () => {
@@ -803,39 +832,158 @@ export default function Home() {
           />
           
           <AnimatePresence mode="wait">
-            <motion.div 
-              key="placeholder"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center space-y-4 z-10 opacity-30 pointer-events-none select-none"
-            >
-              {activeTab === 'cloud' ? (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  key="cloud-vis"
-                  className="flex flex-col items-center gap-3"
-                >
-                  <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                    <Cloud size={36} className="text-zinc-700" />
+            {lastUploadedFile ? (
+              <motion.div
+                key="uploaded-file-details"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="z-10 w-full max-w-lg p-6"
+              >
+                {/* Close Button */}
+                <div className="flex justify-end mb-4">
+                  <button
+                    onClick={clearLastUploadedFile}
+                    className="text-zinc-500 hover:text-white transition-colors p-1"
+                    data-testid="btn-close-file-details"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                {/* File Details Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column - File Info */}
+                  <div className="space-y-6">
+                    {/* File Name */}
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Name</div>
+                      <div className="flex items-center gap-2">
+                        <FileIcon size={16} className="text-cyan-500 shrink-0" />
+                        <p className="text-white text-sm font-medium truncate" data-testid="text-file-name">
+                          {lastUploadedFile.originalName}
+                        </p>
+                      </div>
+                      <p className="text-[10px] text-zinc-500 mt-1">{lastUploadedFile.sizeFormatted}</p>
+                    </div>
+
+                    {/* Share Code */}
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Share Code</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-black border border-zinc-700 px-3 py-2 rounded-md">
+                          <span className="text-lg font-bold font-mono text-cyan-400 tracking-widest" data-testid="text-share-code">
+                            {lastUploadedFile.shareCode}
+                          </span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => copyShareCode(lastUploadedFile.shareCode)}
+                          data-testid="btn-copy-code"
+                          className="border-zinc-700 hover:bg-zinc-800"
+                        >
+                          {copiedCode === lastUploadedFile.shareCode ? (
+                            <Check size={14} className="text-green-500" />
+                          ) : (
+                            <Copy size={14} />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Download Link */}
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Download Link</div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-black border border-zinc-700 px-3 py-2 rounded-md overflow-hidden">
+                          <span className="text-xs text-zinc-400 font-mono truncate block" data-testid="text-download-link">
+                            {getDownloadUrl(lastUploadedFile.shareCode)}
+                          </span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => copyDownloadLink(lastUploadedFile.shareCode)}
+                          data-testid="btn-copy-link"
+                          className="border-zinc-700 hover:bg-zinc-800"
+                        >
+                          {copiedLink ? (
+                            <Check size={14} className="text-green-500" />
+                          ) : (
+                            <Link2 size={14} />
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Download Button */}
+                    <Button
+                      onClick={() => handleDownloadFile(lastUploadedFile.shareCode)}
+                      disabled={downloadMutation.isPending}
+                      data-testid="btn-download-file"
+                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono uppercase tracking-wider"
+                    >
+                      {downloadMutation.isPending ? (
+                        <><Loader2 size={14} className="mr-2 animate-spin" /> Downloading...</>
+                      ) : (
+                        <><Download size={14} className="mr-2" /> Download File</>
+                      )}
+                    </Button>
                   </div>
-                  <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
-                </motion.div>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  key="p2p-vis"
-                  className="flex flex-col items-center gap-3"
-                >
-                  <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                    <Share2 size={36} className="text-zinc-700" />
+
+                  {/* Right Column - QR Code */}
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="bg-white p-4 rounded-md">
+                      <QRCodeSVG
+                        value={getDownloadUrl(lastUploadedFile.shareCode)}
+                        size={180}
+                        level="H"
+                        includeMargin={false}
+                        data-testid="qr-code"
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-3 text-center font-mono uppercase tracking-wider">
+                      Scan to Download
+                    </p>
                   </div>
-                  <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
-                </motion.div>
-              )}
-            </motion.div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="placeholder"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center space-y-4 z-10 opacity-30 pointer-events-none select-none"
+              >
+                {activeTab === 'cloud' ? (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key="cloud-vis"
+                    className="flex flex-col items-center gap-3"
+                  >
+                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
+                      <Cloud size={36} className="text-zinc-700" />
+                    </div>
+                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key="p2p-vis"
+                    className="flex flex-col items-center gap-3"
+                  >
+                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
+                      <Share2 size={36} className="text-zinc-700" />
+                    </div>
+                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
       </main>
