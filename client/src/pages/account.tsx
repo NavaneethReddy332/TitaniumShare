@@ -456,6 +456,7 @@ export default function Account() {
                 size="icon" 
                 onClick={() => logout()}
                 data-testid="btn-logout"
+                className="text-zinc-400 hover:text-red-500 hover:bg-red-500/10"
               >
                 <LogOut size={14} />
               </Button>
@@ -468,14 +469,7 @@ export default function Account() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Navigation */}
         <aside className="w-60 border-r border-zinc-900 p-4 flex flex-col bg-black/60 backdrop-blur-md shrink-0">
-          <div className="flex items-center gap-2 px-4 mb-8">
-            <div className="w-6 h-6 bg-cyan-500 rounded flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.4)]">
-              <span className="text-black text-xs font-bold">T</span>
-            </div>
-            <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-semibold">Titanium // Account</span>
-          </div>
-
-          <nav className="flex flex-col gap-1 flex-1" onMouseLeave={() => setHoveredNavItem(null)}>
+          <nav className="flex flex-col gap-1 flex-1 mt-4" onMouseLeave={() => setHoveredNavItem(null)}>
             <AnimatePresence>
               {navItems.map((item) => (
                 <NavItem
@@ -512,7 +506,17 @@ export default function Account() {
         {/* Content Area */}
         <main className="flex-1 p-12 overflow-y-auto">
           <div className="max-w-2xl">
-            {renderContent()}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+              >
+                {renderContent()}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </main>
       </div>
