@@ -47,13 +47,16 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
       <div className="sidebar-container bg-black/90 backdrop-blur-xl border-l border-zinc-800 flex flex-col items-center py-8">
         <div className="mb-8 w-8 h-8 bg-white rotate-45 flex-shrink-0" />
         
-        <nav className="flex-1 flex flex-col gap-4 w-full px-2">
+        {/* Navigation Items - Grouped for continuous sliding effect */}
+        <nav 
+          className="flex-1 flex flex-col w-full px-2 gap-2"
+          onMouseLeave={() => setHoveredItem(null)}
+        >
           {menuItems.map((item) => (
             <div 
               key={item.id}
               className="relative flex items-center justify-center w-full"
               onMouseEnter={() => setHoveredItem(item.id)}
-              onMouseLeave={() => setHoveredItem(null)}
             >
               {/* Following Background Animation */}
               {hoveredItem === item.id && (
@@ -63,7 +66,12 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  transition={{ 
+                    type: "spring", 
+                    stiffness: 350, 
+                    damping: 25,
+                    duration: 0.3
+                  }}
                 />
               )}
               
@@ -80,7 +88,7 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
                   }`} 
                 />
                 
-                {/* Tooltip on Left (since sidebar is on right) */}
+                {/* Tooltip on Left */}
                 <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500 group-hover:text-white opacity-0 group-hover:opacity-100 transition-opacity absolute right-16 bg-zinc-900 px-2 py-1 rounded border border-zinc-800 whitespace-nowrap z-50 pointer-events-none">
                   {item.label}
                 </span>
@@ -90,21 +98,22 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
         </nav>
 
         <div 
-          className="relative w-full px-2"
+          className="relative w-full px-2 mt-auto"
           onMouseEnter={() => setHoveredItem('logout')}
           onMouseLeave={() => setHoveredItem(null)}
         >
+           {/* Independent hover for logout since it's separated */}
           {hoveredItem === 'logout' && (
              <motion.div
                layoutId="sidebar-hover-bg"
-               className="absolute inset-0 bg-red-900/20 rounded-lg mx-2"
+               className="absolute inset-0 bg-red-900/20 rounded-lg"
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
-               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+               transition={{ type: "spring", stiffness: 350, damping: 25 }}
              />
           )}
-          <button className="relative z-10 mt-auto p-3 w-full flex justify-center text-zinc-500 hover:text-red-500 transition-colors">
+          <button className="relative z-10 p-3 w-full flex justify-center text-zinc-500 hover:text-red-500 transition-colors">
             <LogOut size={20} />
           </button>
         </div>
