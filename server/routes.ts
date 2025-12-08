@@ -119,11 +119,47 @@ export async function registerRoutes(
 
     app.get(
       "/api/auth/google/callback",
-      passport.authenticate("google", { failureRedirect: "/?error=google_auth_failed" }),
+      passport.authenticate("google", { failureRedirect: "/api/auth/google/popup-error" }),
       (req, res) => {
-        res.redirect("/");
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+            <head><title>Authentication Successful</title></head>
+            <body>
+              <script>
+                if (window.opener) {
+                  window.opener.postMessage({ type: "GOOGLE_AUTH_SUCCESS" }, window.location.origin);
+                  window.close();
+                } else {
+                  window.location.href = "/";
+                }
+              </script>
+              <p>Authentication successful. You can close this window.</p>
+            </body>
+          </html>
+        `);
       }
     );
+
+    app.get("/api/auth/google/popup-error", (req, res) => {
+      res.send(`
+        <!DOCTYPE html>
+        <html>
+          <head><title>Authentication Failed</title></head>
+          <body>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: "GOOGLE_AUTH_ERROR", message: "Google authentication failed" }, window.location.origin);
+                window.close();
+              } else {
+                window.location.href = "/?error=google_auth_failed";
+              }
+            </script>
+            <p>Authentication failed. You can close this window.</p>
+          </body>
+        </html>
+      `);
+    });
   }
 
   return httpServer;
