@@ -5,7 +5,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated, hashPassword } from "./auth";
 import { z } from "zod";
-import { uploadFile, getDownloadUrl, deleteFile, generateFileKey, formatFileSize } from "./storj";
+import { uploadFile, getDownloadUrl, getUploadUrl, deleteFile, generateFileKey, formatFileSize } from "./storj";
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/bmp', 'image/tiff',
@@ -198,7 +198,66 @@ export async function registerRoutes(
     });
   }
 
-  // File upload endpoint
+  // Get presigned upload URL for direct browser upload to Storj
+  app.post("/api/files/presign", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const { fileName, contentType, size } = req.body;
+
+      if (!fileName || !size) {
+        return res.status(400).json({ message: "fileName and size are required" });
+      }
+
+      const storageKey = generateFileKey(user.id, fileName);
+      const shareCode = generateShareCode();
+      const uploadUrl = await getUploadUrl(storageKey, contentType || 'application/octet-stream', 3600);
+
+      res.json({
+        uploadUrl,
+        storageKey,
+        shareCode,
+      });
+    } catch (error) {
+      console.error("Presign error:", error);
+      res.status(500).json({ message: "Failed to generate upload URL" });
+    }
+  });
+
+  // Confirm direct upload completed and save file metadata
+  app.post("/api/files/confirm", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as { id: string };
+      const { storageKey, shareCode, originalName, size, contentType } = req.body;
+
+      if (!storageKey || !shareCode || !originalName || !size) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      const file = await storage.createFile({
+        userId: user.id,
+        originalName,
+        storageKey,
+        size,
+        contentType: contentType || 'application/octet-stream',
+        shareCode,
+        expiresAt: null,
+      });
+
+      res.json({
+        id: file.id,
+        originalName: file.originalName,
+        size: file.size,
+        sizeFormatted: formatFileSize(file.size),
+        shareCode: file.shareCode,
+        createdAt: file.createdAt,
+      });
+    } catch (error) {
+      console.error("Confirm upload error:", error);
+      res.status(500).json({ message: "Failed to confirm upload" });
+    }
+  });
+
+  // Legacy file upload endpoint (fallback)
   app.post("/api/files/upload", isAuthenticated, (req, res, next) => {
     upload.single("file")(req, res, (err) => {
       if (err) {

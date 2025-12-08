@@ -281,11 +281,28 @@ export default function Home() {
     setFilesToUpload(filesToUpload.filter(f => f.name !== name));
   };
 
-  const uploadWithProgress = (file: File): Promise<void> => {
-    return new Promise((resolve, reject) => {
+  const uploadWithProgress = async (file: File): Promise<void> => {
+    // Step 1: Get presigned URL from server
+    const presignResponse = await fetch('/api/files/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        size: file.size,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+
+    const { uploadUrl, storageKey, shareCode } = await presignResponse.json();
+
+    // Step 2: Upload directly to Storj using presigned URL
+    await new Promise<void>((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-      formData.append('file', file);
 
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
@@ -300,17 +317,35 @@ export default function Home() {
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve();
         } else {
-          reject(new Error('Upload failed'));
+          reject(new Error('Upload to storage failed'));
         }
       });
 
       xhr.addEventListener('error', () => reject(new Error('Upload failed')));
       xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
 
-      xhr.open('POST', '/api/files/upload');
-      xhr.withCredentials = true;
-      xhr.send(formData);
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.send(file);
     });
+
+    // Step 3: Confirm upload with server
+    const confirmResponse = await fetch('/api/files/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        storageKey,
+        shareCode,
+        originalName: file.name,
+        size: file.size,
+        contentType: file.type || 'application/octet-stream',
+      }),
+    });
+
+    if (!confirmResponse.ok) {
+      throw new Error('Failed to confirm upload');
+    }
   };
 
   const handleUploadAll = async () => {
