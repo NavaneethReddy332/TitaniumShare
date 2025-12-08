@@ -7,10 +7,30 @@ import { setupAuth, isAuthenticated, hashPassword } from "./auth";
 import { z } from "zod";
 import { uploadFile, getDownloadUrl, deleteFile, generateFileKey, formatFileSize } from "./storj";
 
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  'application/pdf', 'application/zip', 'application/x-zip-compressed',
+  'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'text/plain', 'text/csv', 'text/html', 'text/css', 'text/javascript',
+  'application/json', 'application/xml',
+  'audio/mpeg', 'audio/wav', 'audio/ogg',
+  'video/mp4', 'video/webm', 'video/ogg',
+  'font/ttf', 'font/woff', 'font/woff2',
+];
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 100 * 1024 * 1024, // 100MB limit
+  },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MIME_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${file.mimetype} not allowed`));
+    }
   },
 });
 
@@ -177,7 +197,15 @@ export async function registerRoutes(
   }
 
   // File upload endpoint
-  app.post("/api/files/upload", isAuthenticated, upload.single("file"), async (req, res) => {
+  app.post("/api/files/upload", isAuthenticated, (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err) {
+        console.error("Upload filter error:", err.message);
+        return res.status(400).json({ message: err.message || "Upload failed" });
+      }
+      next();
+    });
+  }, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No file provided" });

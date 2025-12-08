@@ -72,8 +72,28 @@ Preferred communication style: Simple, everyday language.
 **Tables**:
 - `users`: Stores user accounts with support for both local and OAuth authentication
 - `sessions`: Stores Express session data with automatic expiration
+- `files`: Tracks uploaded files with share codes, download counts, and expiration
 
 **Data Access Layer**: Abstracted through a storage interface (`IStorage`) with a concrete `DatabaseStorage` implementation, enabling potential future storage backend changes.
+
+### File Storage (Storj Integration)
+
+**Object Storage**: Storj decentralized cloud storage via S3-compatible API (AWS SDK v3).
+
+**Service Layer** (`server/storj.ts`): Provides file upload/download functions using the AWS SDK's S3Client with Storj's gateway endpoint.
+
+**Features**:
+- Multipart uploads for large files (5MB chunks, 4 concurrent parts)
+- Presigned URLs for secure direct downloads (1-hour expiry)
+- File type validation with allowlist for security
+- Share codes for easy file sharing (6-character alphanumeric)
+- Download tracking with counters
+
+**API Endpoints**:
+- `POST /api/files/upload`: Upload file to Storj (authenticated, 100MB limit)
+- `GET /api/files`: List user's uploaded files (authenticated)
+- `GET /api/files/download/:shareCode`: Get presigned download URL
+- `DELETE /api/files/:id`: Delete file from storage (authenticated, owner only)
 
 ### External Dependencies
 
@@ -93,6 +113,9 @@ Preferred communication style: Simple, everyday language.
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
 - `GOOGLE_CALLBACK_URL`: OAuth callback URL
+- `STORJ_ACCESS_KEY_ID`: Storj S3-compatible access key
+- `STORJ_SECRET_ACCESS_KEY`: Storj S3-compatible secret key
+- `STORJ_BUCKET_NAME`: Storj bucket name for file storage
 
 **NPM Dependencies** (key libraries):
 - `drizzle-orm` & `drizzle-zod`: Database ORM and validation

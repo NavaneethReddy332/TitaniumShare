@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Cloud, 
   Share2, 
@@ -16,7 +17,12 @@ import {
   Download,
   MessageSquare,
   Info,
-  LogOut
+  LogOut,
+  Loader2,
+  Copy,
+  Check,
+  Trash2,
+  FileIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +31,24 @@ import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AuthModal } from "@/components/auth-modal";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface UploadedFile {
+  id: string;
+  originalName: string;
+  size: number;
+  sizeFormatted: string;
+  shareCode: string;
+  downloadCount: number;
+  createdAt: string;
+}
+
+interface UploadProgress {
+  fileName: string;
+  progress: number;
+  status: 'uploading' | 'complete' | 'error';
+}
 
 const NETWORK_STATS = {
   down: "80.7 Mbps",
@@ -166,11 +190,80 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
 export default function Home() {
   const { user, logout, isAuthenticated } = useAuth();
   const [, navigate] = useLocation();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("cloud");
-  const [files, setFiles] = useState<File[]>([]);
+  const [filesToUpload, setFilesToUpload] = useState<File[]>([]);
   const [receiveCode, setReceiveCode] = useState("");
   const [showLoginPrompt, setShowLoginPrompt] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
+    queryKey: ['/api/files'],
+    enabled: isAuthenticated,
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/files/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('DELETE', `/api/files/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      toast({ title: "File deleted successfully" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete file", variant: "destructive" });
+    },
+  });
+
+  const downloadMutation = useMutation({
+    mutationFn: async (shareCode: string) => {
+      const response = await fetch(`/api/files/download/${shareCode}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Download failed');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const link = document.createElement('a');
+      link.href = data.url;
+      link.download = data.originalName;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast({ title: `Downloading ${data.originalName}` });
+    },
+    onError: (error: Error) => {
+      toast({ title: error.message, variant: "destructive" });
+    },
+  });
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -179,13 +272,62 @@ export default function Home() {
   }, [isAuthenticated]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    setFiles(prev => [...prev, ...acceptedFiles]);
+    setFilesToUpload(prev => [...prev, ...acceptedFiles]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   const removeFile = (name: string) => {
-    setFiles(files.filter(f => f.name !== name));
+    setFilesToUpload(filesToUpload.filter(f => f.name !== name));
+  };
+
+  const handleUploadAll = async () => {
+    if (!isAuthenticated) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    const filesToProcess = [...filesToUpload];
+    setFilesToUpload([]);
+
+    for (const file of filesToProcess) {
+      setUploadProgress(prev => [...prev, { fileName: file.name, progress: 30, status: 'uploading' }]);
+      
+      try {
+        setUploadProgress(prev => 
+          prev.map(p => p.fileName === file.name && p.status === 'uploading' ? { ...p, progress: 60 } : p)
+        );
+        
+        await uploadMutation.mutateAsync(file);
+        
+        setUploadProgress(prev => 
+          prev.map(p => p.fileName === file.name ? { ...p, progress: 100, status: 'complete' } : p)
+        );
+        
+        toast({ title: `Uploaded ${file.name}` });
+      } catch {
+        setUploadProgress(prev => 
+          prev.map(p => p.fileName === file.name ? { ...p, status: 'error' } : p)
+        );
+        toast({ title: `Failed to upload ${file.name}`, variant: "destructive" });
+      }
+    }
+
+    setTimeout(() => {
+      setUploadProgress(prev => prev.filter(p => p.status !== 'complete'));
+    }, 3000);
+  };
+
+  const copyShareCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleReceive = () => {
+    if (!receiveCode.trim()) return;
+    downloadMutation.mutate(receiveCode.trim().toUpperCase());
+    setReceiveCode("");
   };
 
   const handleNavigateAccount = () => {
@@ -282,7 +424,13 @@ export default function Home() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
                       <span>Send</span>
-                      <button data-testid="btn-history" className="hover:text-white transition-colors">History</button>
+                      <button 
+                        data-testid="btn-history" 
+                        onClick={() => setShowHistory(!showHistory)}
+                        className={`hover:text-white transition-colors ${showHistory ? 'text-white' : ''}`}
+                      >
+                        {showHistory ? 'Hide History' : 'History'}
+                      </button>
                     </div>
 
                     <div 
@@ -314,14 +462,14 @@ export default function Home() {
 
                     {/* File List Preview */}
                     <AnimatePresence>
-                      {files.length > 0 && (
+                      {filesToUpload.length > 0 && (
                         <motion.div 
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           className="space-y-2 mt-3"
                         >
-                          {files.map((file, idx) => (
+                          {filesToUpload.map((file, idx) => (
                             <div key={`${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800 text-[10px]">
                               <span className="truncate max-w-[180px] text-zinc-300">{file.name}</span>
                               <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500">
@@ -329,9 +477,48 @@ export default function Home() {
                               </button>
                             </div>
                           ))}
-                          <Button data-testid="btn-start-upload" className="w-full rounded-none bg-white text-black hover:bg-zinc-200 mt-2 font-mono text-[10px] uppercase font-bold h-10">
-                            Start Upload
+                          <Button 
+                            data-testid="btn-start-upload" 
+                            onClick={handleUploadAll}
+                            disabled={uploadMutation.isPending}
+                            className="w-full rounded-none bg-white text-black hover:bg-zinc-200 mt-2 font-mono text-[10px] uppercase font-bold h-10"
+                          >
+                            {uploadMutation.isPending ? (
+                              <><Loader2 size={14} className="mr-2 animate-spin" /> Uploading...</>
+                            ) : (
+                              "Start Upload"
+                            )}
                           </Button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Upload Progress */}
+                    <AnimatePresence>
+                      {uploadProgress.length > 0 && (
+                        <motion.div 
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="space-y-2"
+                        >
+                          {uploadProgress.map((p, idx) => (
+                            <div key={idx} className="bg-zinc-900/50 border border-zinc-800 p-2">
+                              <div className="flex items-center justify-between text-[10px] mb-1">
+                                <span className="truncate max-w-[180px] text-zinc-300">{p.fileName}</span>
+                                <span className={`${p.status === 'complete' ? 'text-green-500' : p.status === 'error' ? 'text-red-500' : 'text-zinc-500'}`}>
+                                  {p.status === 'complete' ? 'Done' : p.status === 'error' ? 'Failed' : 'Uploading...'}
+                                </span>
+                              </div>
+                              <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                                <motion.div 
+                                  initial={{ width: 0 }}
+                                  animate={{ width: p.status === 'complete' ? '100%' : p.status === 'error' ? '100%' : '60%' }}
+                                  className={`h-full ${p.status === 'complete' ? 'bg-green-500' : p.status === 'error' ? 'bg-red-500' : 'bg-white'}`}
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -348,13 +535,23 @@ export default function Home() {
                     <div className="flex gap-0">
                       <Input 
                         value={receiveCode}
-                        onChange={(e) => setReceiveCode(e.target.value)}
+                        onChange={(e) => setReceiveCode(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => e.key === 'Enter' && handleReceive()}
                         data-testid="input-receive-code"
-                        placeholder="6/8 digit code" 
-                        className="rounded-none border-zinc-800 bg-transparent text-center font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700"
+                        placeholder="Enter share code" 
+                        className="rounded-none border-zinc-800 bg-transparent text-center font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700 uppercase"
                       />
-                      <Button data-testid="btn-receive" className="rounded-none h-10 w-10 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800">
-                        <ArrowRight size={14} className="text-zinc-400" />
+                      <Button 
+                        data-testid="btn-receive" 
+                        onClick={handleReceive}
+                        disabled={downloadMutation.isPending}
+                        className="rounded-none h-10 w-10 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800"
+                      >
+                        {downloadMutation.isPending ? (
+                          <Loader2 size={14} className="text-zinc-400 animate-spin" />
+                        ) : (
+                          <ArrowRight size={14} className="text-zinc-400" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -390,34 +587,111 @@ export default function Home() {
             }} 
           />
           
-          {/* Empty State / Visualization */}
-          <div className="text-center space-y-4 z-10 opacity-30 pointer-events-none select-none">
-            {activeTab === 'cloud' ? (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                key="cloud-vis"
-                className="flex flex-col items-center gap-3"
+          <AnimatePresence mode="wait">
+            {showHistory && isAuthenticated ? (
+              <motion.div
+                key="history"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="absolute inset-0 p-6 overflow-auto"
               >
-                <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                  <Cloud size={36} className="text-zinc-700" />
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-4">Your Files</h2>
+                  
+                  {filesLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 size={24} className="text-zinc-600 animate-spin" />
+                    </div>
+                  ) : uploadedFiles.length === 0 ? (
+                    <div className="text-center py-12">
+                      <FileIcon size={32} className="text-zinc-700 mx-auto mb-3" />
+                      <p className="text-zinc-500 text-xs font-mono">No files uploaded yet</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {uploadedFiles.map((file) => (
+                        <motion.div 
+                          key={file.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          data-testid={`uploaded-file-${file.id}`}
+                          className="bg-zinc-900/50 border border-zinc-800 p-3 flex items-center gap-3"
+                        >
+                          <FileIcon size={16} className="text-zinc-500 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-zinc-300 truncate">{file.originalName}</p>
+                            <p className="text-[10px] text-zinc-600">{file.sizeFormatted}</p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button
+                              onClick={() => copyShareCode(file.shareCode)}
+                              className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors"
+                              data-testid={`copy-code-${file.id}`}
+                            >
+                              {copiedCode === file.shareCode ? (
+                                <><Check size={10} className="text-green-500" /> Copied</>
+                              ) : (
+                                <><Copy size={10} /> {file.shareCode}</>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => downloadMutation.mutate(file.shareCode)}
+                              className="p-1 text-zinc-500 hover:text-white transition-colors"
+                              data-testid={`download-${file.id}`}
+                            >
+                              <Download size={14} />
+                            </button>
+                            <button
+                              onClick={() => deleteMutation.mutate(file.id)}
+                              className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
+                              data-testid={`delete-${file.id}`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
               </motion.div>
             ) : (
               <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                key="p2p-vis"
-                className="flex flex-col items-center gap-3"
+                key="placeholder"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-center space-y-4 z-10 opacity-30 pointer-events-none select-none"
               >
-                <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                  <Share2 size={36} className="text-zinc-700" />
-                </div>
-                <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
+                {activeTab === 'cloud' ? (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key="cloud-vis"
+                    className="flex flex-col items-center gap-3"
+                  >
+                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
+                      <Cloud size={36} className="text-zinc-700" />
+                    </div>
+                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key="p2p-vis"
+                    className="flex flex-col items-center gap-3"
+                  >
+                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
+                      <Share2 size={36} className="text-zinc-700" />
+                    </div>
+                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
+                  </motion.div>
+                )}
               </motion.div>
             )}
-          </div>
+          </AnimatePresence>
         </div>
       </main>
       </div>
