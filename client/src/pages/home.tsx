@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
@@ -169,8 +169,14 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("cloud");
   const [files, setFiles] = useState<File[]>([]);
   const [receiveCode, setReceiveCode] = useState("");
-  const [showLoginPrompt, setShowLoginPrompt] = useState(!isAuthenticated);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setShowLoginPrompt(false);
+    }
+  }, [isAuthenticated]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [...prev, ...acceptedFiles]);

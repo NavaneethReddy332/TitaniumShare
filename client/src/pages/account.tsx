@@ -1,21 +1,15 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, 
   User, 
   Shield, 
   CreditCard,
-  Cloud,
   Activity,
-  GitCommit,
   FileText,
   Settings,
   LogOut,
   ChevronRight,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
   Wifi
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -34,25 +28,45 @@ interface NavItemProps {
   icon: React.ElementType;
   label: string;
   active: boolean;
+  isHovered: boolean;
   onClick: () => void;
+  onMouseEnter: () => void;
 }
 
-function NavItem({ id, icon: Icon, label, active, onClick }: NavItemProps) {
+function NavItem({ id, icon: Icon, label, active, isHovered, onClick, onMouseEnter }: NavItemProps) {
   return (
-    <button
-      onClick={onClick}
-      data-testid={`nav-${id}`}
-      className={`
-        w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium transition-all duration-200 rounded-md
-        ${active 
-          ? 'bg-zinc-900/80 text-white border-r-2 border-cyan-500' 
-          : 'text-zinc-500 hover:text-zinc-300 hover:bg-zinc-900/40'
-        }
-      `}
-    >
-      <Icon size={16} className={active ? 'text-cyan-500' : ''} />
-      <span>{label}</span>
-    </button>
+    <div className="relative" onMouseEnter={onMouseEnter}>
+      {isHovered && (
+        <motion.div
+          layoutId="account-nav-hover"
+          className="absolute inset-0 bg-zinc-800/60 rounded-md"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 350, 
+            damping: 25,
+            duration: 0.2
+          }}
+        />
+      )}
+      <button
+        onClick={onClick}
+        data-testid={`nav-${id}`}
+        className={`
+          relative z-10 w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium transition-colors duration-200 rounded-md
+          ${active 
+            ? 'text-white' 
+            : 'text-zinc-500'
+          }
+        `}
+      >
+        <Icon size={16} className={active ? 'text-cyan-500' : isHovered ? 'text-zinc-300' : ''} />
+        <span className={isHovered && !active ? 'text-zinc-300' : ''}>{label}</span>
+        {active && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-cyan-500 rounded-full" />}
+      </button>
+    </div>
   );
 }
 
@@ -125,6 +139,8 @@ function ActivityItem({ icon: Icon, title, subtitle, status, testId }: ActivityI
 }
 
 function OverviewTab() {
+  const { user } = useAuth();
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -132,24 +148,24 @@ function OverviewTab() {
       transition={{ duration: 0.3 }}
     >
       <h1 className="text-xl font-semibold text-white mb-1">Dashboard</h1>
-      <p className="text-xs text-zinc-500 mb-8">Real-time system overview.</p>
+      <p className="text-xs text-zinc-500 mb-8">Welcome back, {user?.username || user?.email?.split('@')[0] || 'User'}.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
         <UsageCard 
           title="Cloud Storage" 
-          percentage={75} 
-          used="750MB Used" 
+          percentage={0} 
+          used="0MB Used" 
           total="1GB Total"
           testId="card-cloud-storage"
         />
         <UsageCard 
-          title="API Usage" 
-          percentage={25} 
-          used="25 Requests" 
-          total="100 Limit"
-          status="Healthy"
+          title="Transfers" 
+          percentage={0} 
+          used="0 Files" 
+          total="This Month"
+          status="Ready"
           color="green"
-          testId="card-api-usage"
+          testId="card-transfers"
         />
       </div>
 
@@ -162,26 +178,11 @@ function OverviewTab() {
           </span>
         </div>
         
-        <ActivityItem 
-          icon={GitCommit}
-          title="File Uploaded"
-          subtitle="2 minutes ago - document.pdf"
-          status="Success"
-          testId="activity-file-uploaded"
-        />
-        <ActivityItem 
-          icon={FileText}
-          title="Transfer Complete"
-          subtitle="1 hour ago - 128MB"
-          testId="activity-transfer-complete"
-        />
-        <ActivityItem 
-          icon={Cloud}
-          title="Storage Synced"
-          subtitle="3 hours ago"
-          status="Completed"
-          testId="activity-storage-synced"
-        />
+        <div className="text-center py-8">
+          <Activity size={32} className="text-zinc-700 mx-auto mb-3" />
+          <p className="text-sm text-zinc-500">No recent activity</p>
+          <p className="text-[11px] text-zinc-600 mt-1">Your file transfers will appear here</p>
+        </div>
       </div>
     </motion.div>
   );
@@ -274,15 +275,7 @@ function AccountTab() {
 }
 
 function SecurityTab() {
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const apiKey = "tk_live_xxxxxxxxxxxxxxxxxxxxxxxx";
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(apiKey);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const { user } = useAuth();
 
   return (
     <motion.div
@@ -294,64 +287,44 @@ function SecurityTab() {
       <p className="text-xs text-zinc-500 mb-8">Manage your security settings.</p>
 
       <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
-        <h3 className="text-sm font-semibold text-white mb-5">API Key</h3>
+        <h3 className="text-sm font-semibold text-white mb-5">Account Information</h3>
         
-        <div 
-          className="bg-black border border-dashed border-zinc-800 rounded-md px-4 py-3 flex items-center justify-between cursor-pointer hover:border-zinc-600 transition-colors group"
-          onClick={handleCopy}
-        >
-          <code className={`text-xs text-zinc-500 font-mono transition-all ${!showApiKey ? 'blur-sm' : ''} group-hover:blur-0`}>
-            {apiKey}
-          </code>
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={(e) => { e.stopPropagation(); setShowApiKey(!showApiKey); }}
-              className="text-zinc-500 hover:text-white transition-colors"
-              data-testid="btn-toggle-api-key"
-            >
-              {showApiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-            <button 
-              className="text-zinc-500 hover:text-white transition-colors"
-              data-testid="btn-copy-api-key"
-            >
-              {copied ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
-            </button>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between py-3 border-b border-zinc-800">
+            <div>
+              <h4 className="text-sm text-white">Login Method</h4>
+              <p className="text-[11px] text-zinc-500 mt-0.5">How you sign in to your account</p>
+            </div>
+            <span className="text-xs text-zinc-400 bg-zinc-900 px-3 py-1 rounded-full capitalize">
+              {user?.provider || 'Local'}
+            </span>
+          </div>
+          <div className="flex items-center justify-between py-3">
+            <div>
+              <h4 className="text-sm text-white">Account Created</h4>
+              <p className="text-[11px] text-zinc-500 mt-0.5">When you joined Titanium</p>
+            </div>
+            <span className="text-xs text-zinc-400">
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
+            </span>
           </div>
         </div>
-        <p className="text-[11px] text-zinc-600 mt-2">Click to copy. Keep this key secure.</p>
       </div>
 
       <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Active Sessions</h3>
+        <h3 className="text-sm font-semibold text-white mb-5">Current Session</h3>
         
-        <div className="space-y-0">
-          <div className="flex items-center justify-between py-4 border-b border-zinc-800">
-            <div className="flex items-center gap-4">
-              <div className="w-9 h-9 bg-zinc-900 rounded-md flex items-center justify-center">
-                <Settings size={16} className="text-zinc-500" />
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-white">Current Browser</h4>
-                <p className="text-[11px] text-zinc-500 mt-0.5">Chrome on macOS - Active now</p>
-              </div>
+        <div className="flex items-center justify-between py-4">
+          <div className="flex items-center gap-4">
+            <div className="w-9 h-9 bg-zinc-900 rounded-md flex items-center justify-center">
+              <Settings size={16} className="text-zinc-500" />
             </div>
-            <div className="w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
-          </div>
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <div className="w-9 h-9 bg-zinc-900 rounded-md flex items-center justify-center">
-                <Settings size={16} className="text-zinc-500" />
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-white">Mobile App</h4>
-                <p className="text-[11px] text-zinc-500 mt-0.5">iPhone 15 - Last active 2h ago</p>
-              </div>
+            <div>
+              <h4 className="text-sm font-medium text-white">This Browser</h4>
+              <p className="text-[11px] text-zinc-500 mt-0.5">Currently active session</p>
             </div>
-            <Button variant="ghost" size="sm" className="text-xs text-zinc-500 hover:text-red-500">
-              Revoke
-            </Button>
           </div>
+          <div className="w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
         </div>
       </div>
 
@@ -361,9 +334,9 @@ function SecurityTab() {
         <div className="flex items-center justify-between">
           <div>
             <h4 className="text-sm text-white">Enable 2FA</h4>
-            <p className="text-[11px] text-zinc-500 mt-0.5">Add an extra layer of security</p>
+            <p className="text-[11px] text-zinc-500 mt-0.5">Coming soon</p>
           </div>
-          <Switch data-testid="switch-2fa" />
+          <Switch data-testid="switch-2fa" disabled />
         </div>
       </div>
     </motion.div>
@@ -422,6 +395,7 @@ function BillingTab() {
 export default function Account() {
   const { user, logout, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [hoveredNavItem, setHoveredNavItem] = useState<TabType | null>(null);
 
   const navItems: { id: TabType; icon: React.ElementType; label: string }[] = [
     { id: 'overview', icon: LayoutDashboard, label: 'Overview' },
@@ -501,17 +475,21 @@ export default function Account() {
             <span className="text-[11px] text-zinc-500 uppercase tracking-widest font-semibold">Titanium // Account</span>
           </div>
 
-          <nav className="flex flex-col gap-1 flex-1">
-            {navItems.map((item) => (
-              <NavItem
-                key={item.id}
-                id={item.id}
-                icon={item.icon}
-                label={item.label}
-                active={activeTab === item.id}
-                onClick={() => setActiveTab(item.id)}
-              />
-            ))}
+          <nav className="flex flex-col gap-1 flex-1" onMouseLeave={() => setHoveredNavItem(null)}>
+            <AnimatePresence>
+              {navItems.map((item) => (
+                <NavItem
+                  key={item.id}
+                  id={item.id}
+                  icon={item.icon}
+                  label={item.label}
+                  active={activeTab === item.id}
+                  isHovered={hoveredNavItem === item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  onMouseEnter={() => setHoveredNavItem(item.id)}
+                />
+              ))}
+            </AnimatePresence>
           </nav>
 
           {/* User Profile */}
