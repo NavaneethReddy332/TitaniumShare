@@ -23,6 +23,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { AuthModal } from "@/components/auth-modal";
 
 const NETWORK_STATS = {
   down: "80.7 Mbps",
@@ -67,7 +68,7 @@ function TitaniumLogo({ className = "" }: { className?: string }) {
   );
 }
 
-function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab: (tab: string) => void }) {
+function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated }: { activeTab: string, setActiveTab: (tab: string) => void, onLogout: () => void, isAuthenticated: boolean }) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const menuItems = [
@@ -146,13 +147,15 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
                transition={{ type: "spring", stiffness: 350, damping: 25 }}
              />
           )}
-          <a 
-            href="/api/logout"
-            data-testid="sidebar-logout"
-            className="relative z-10 p-3 w-full flex justify-center text-zinc-500 hover:text-red-500 transition-colors"
-          >
-            <LogOut size={18} />
-          </a>
+          {isAuthenticated && (
+            <button 
+              onClick={onLogout}
+              data-testid="sidebar-logout"
+              className="relative z-10 p-3 w-full flex justify-center text-zinc-500 hover:text-red-500 transition-colors"
+            >
+              <LogOut size={18} />
+            </button>
+          )}
         </div>
       </div>
     </>
@@ -160,11 +163,12 @@ function Sidebar({ activeTab, setActiveTab }: { activeTab: string, setActiveTab:
 }
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState("cloud");
   const [files, setFiles] = useState<File[]>([]);
   const [receiveCode, setReceiveCode] = useState("");
-  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(!isAuthenticated);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(prev => [...prev, ...acceptedFiles]);
@@ -178,7 +182,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-white font-mono selection:bg-white selection:text-black flex flex-col overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} isAuthenticated={isAuthenticated} />
 
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-900 pr-16 transition-all duration-300">
@@ -195,7 +199,7 @@ export default function Home() {
         </nav>
 
         <div className="flex items-center gap-3">
-          {user && (
+          {user ? (
             <div className="hidden md:flex items-center gap-3">
               <Avatar className="h-7 w-7">
                 <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || 'User'} className="object-cover" />
@@ -204,16 +208,27 @@ export default function Home() {
                 </AvatarFallback>
               </Avatar>
               <span className="text-zinc-400 text-xs">{user.firstName || user.email}</span>
-              <a 
-                href="/api/logout" 
+              <button 
+                onClick={() => logout()}
                 data-testid="btn-logout"
                 className="text-zinc-500 hover:text-red-500 transition-colors"
               >
                 <LogOut size={14} />
-              </a>
+              </button>
             </div>
+          ) : (
+            <Button 
+              data-testid="btn-login" 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowAuthModal(true)}
+              className="hidden md:flex text-zinc-400 hover:text-white gap-2 text-xs"
+            >
+              <User size={14} />
+              LOGIN
+            </Button>
           )}
-          <Button variant="ghost" size="icon" className="md:hidden">
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => !user && setShowAuthModal(true)}>
             <Menu size={18} />
           </Button>
         </div>
@@ -405,7 +420,11 @@ export default function Home() {
                   <p className="text-[10px] text-zinc-400 leading-snug">
                     Sign in to track your file transfers.
                   </p>
-                  <button data-testid="btn-login-prompt" className="text-[9px] font-bold uppercase tracking-wider text-white mt-0.5 hover:underline">
+                  <button 
+                    onClick={() => setShowAuthModal(true)}
+                    data-testid="btn-login-prompt" 
+                    className="text-[9px] font-bold uppercase tracking-wider text-white mt-0.5 hover:underline"
+                  >
                     Login Now
                   </button>
                 </div>
@@ -443,6 +462,8 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      <AuthModal open={showAuthModal} onOpenChange={setShowAuthModal} />
     </div>
   );
 }
