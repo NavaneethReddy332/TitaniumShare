@@ -18,8 +18,11 @@ import {
   Copy,
   Check,
   Trash2,
-  FileIcon
+  FileIcon,
+  X,
+  Link2
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -184,6 +187,8 @@ function OverviewTab() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [hoveredFileId, setHoveredFileId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
   
   const { data: storageData, isLoading: storageLoading } = useQuery<StorageData>({
     queryKey: ['/api/account/storage'],
@@ -251,6 +256,23 @@ function OverviewTab() {
     setCopiedCode(code);
     toast({ title: "Share code copied!" });
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const getDownloadUrl = (shareCode: string) => {
+    return `${window.location.origin}/download/${shareCode}`;
+  };
+
+  const copyDownloadLink = (shareCode: string) => {
+    navigator.clipboard.writeText(getDownloadUrl(shareCode));
+    setCopiedLink(true);
+    toast({ title: "Download link copied!" });
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleFileClick = (file: UploadedFile) => {
+    if (file.existsInStorage) {
+      setSelectedFile(file);
+    }
   };
 
   return (
@@ -327,11 +349,12 @@ function OverviewTab() {
                 
                 <div
                   data-testid={`uploaded-file-${file.id}`}
+                  onClick={() => handleFileClick(file)}
                   className={`relative z-10 bg-zinc-900/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
                     file.existsInStorage 
                       ? 'border-zinc-800' 
                       : 'border-red-900/50'
-                  } ${hoveredFileId === file.id ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''}`}
+                  } ${hoveredFileId === file.id ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''} ${selectedFile?.id === file.id ? 'ring-1 ring-cyan-500 border-cyan-500' : ''}`}
                 >
                   {file.existsInStorage ? (
                     <FileIcon size={16} className={`shrink-0 transition-colors ${hoveredFileId === file.id ? 'text-zinc-300' : 'text-zinc-500'}`} />
@@ -397,6 +420,125 @@ function OverviewTab() {
           </div>
         )}
       </div>
+
+      {/* File Details Panel */}
+      <AnimatePresence>
+        {selectedFile && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mt-5"
+            data-testid="file-details-panel"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-white">File Details</h3>
+              <button
+                onClick={() => setSelectedFile(null)}
+                className="text-zinc-500 hover:text-white transition-colors p-1"
+                data-testid="btn-close-details"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left Column - File Info */}
+              <div className="space-y-4">
+                {/* File Name */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Name</div>
+                  <div className="flex items-center gap-2">
+                    <FileIcon size={16} className="text-cyan-500 shrink-0" />
+                    <p className="text-white text-sm font-medium truncate" data-testid="text-detail-filename">
+                      {selectedFile.originalName}
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mt-1">{selectedFile.sizeFormatted}</p>
+                </div>
+
+                {/* Share Code */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Share Code</div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl font-mono font-bold text-cyan-400 tracking-widest" data-testid="text-detail-code">
+                      {selectedFile.shareCode}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); copyShareCode(selectedFile.shareCode); }}
+                      className="text-[10px]"
+                      data-testid="btn-copy-detail-code"
+                    >
+                      {copiedCode === selectedFile.shareCode ? <Check size={12} /> : <Copy size={12} />}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Stats */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Statistics</div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-zinc-400">Downloads</span>
+                    <span className="text-sm text-white font-medium" data-testid="text-detail-downloads">{selectedFile.downloadCount}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="text-xs text-zinc-400">Uploaded</span>
+                    <span className="text-sm text-white font-medium">{formatTimeAgo(selectedFile.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - QR Code & Actions */}
+              <div className="space-y-4">
+                {/* QR Code */}
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4 flex flex-col items-center">
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-3 self-start">QR Code</div>
+                  <div className="bg-white p-3 rounded-md">
+                    <QRCodeSVG 
+                      value={getDownloadUrl(selectedFile.shareCode)} 
+                      size={120}
+                      level="M"
+                    />
+                  </div>
+                  <p className="text-[9px] text-zinc-600 mt-2">Scan to download</p>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-2">
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); copyDownloadLink(selectedFile.shareCode); }}
+                    variant="outline"
+                    className="w-full justify-start"
+                    data-testid="btn-copy-detail-link"
+                  >
+                    {copiedLink ? <Check size={14} className="mr-2 text-green-500" /> : <Link2 size={14} className="mr-2" />}
+                    {copiedLink ? "Link Copied!" : "Copy Download Link"}
+                  </Button>
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); downloadMutation.mutate(selectedFile.shareCode); }}
+                    className="w-full justify-start"
+                    data-testid="btn-download-detail"
+                  >
+                    <Download size={14} className="mr-2" />
+                    Download File
+                  </Button>
+                  <Button
+                    onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(selectedFile.id); setSelectedFile(null); }}
+                    variant="destructive"
+                    className="w-full justify-start"
+                    data-testid="btn-delete-detail"
+                  >
+                    <Trash2 size={14} className="mr-2" />
+                    Delete File
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
