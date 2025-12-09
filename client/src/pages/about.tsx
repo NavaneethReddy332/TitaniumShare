@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Info, Code2, Sparkles, Lock, Eye, EyeOff, CheckCircle2, Loader2, Users, Heart } from "lucide-react";
+import { ArrowLeft, Info, Code2, Sparkles, Lock, Eye, EyeOff, CheckCircle2, Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -143,11 +143,7 @@ export default function AboutPage() {
 
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Heart className="text-red-500" size={20} />
-                <span className="text-zinc-400">Built with love using React, Express, and Storj</span>
-              </div>
+            <div className="flex items-center justify-end">
               <Button
                 variant="ghost"
                 size="sm"

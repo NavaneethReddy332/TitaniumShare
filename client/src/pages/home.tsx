@@ -1300,13 +1300,6 @@ export default function Home() {
           </AnimatePresence>
         </div>
 
-        <div className="flex items-center gap-2 text-[9px] text-zinc-600 font-mono uppercase tracking-widest">
-          <span>Powered by</span>
-          <span className="text-white font-bold flex items-center gap-1">
-            <div className="w-1.5 h-1.5 bg-white rounded-sm" /> REPLIT
-          </span>
-        </div>
-
         <div className="border border-zinc-900 bg-zinc-950 px-3 py-1.5 flex items-center gap-4 min-w-[160px]">
           <Wifi size={12} className="text-zinc-600" />
           <div className="flex-1 flex justify-between items-center gap-3">
