@@ -102,13 +102,27 @@ export async function getDownloadUrl(key: string, expiresIn: number = 3600): Pro
 }
 
 export async function getUploadUrl(key: string, contentType: string, expiresIn: number = 3600): Promise<string> {
+  // Create a separate client for presigned URLs without checksum requirements
+  const presignClient = new S3Client({
+    endpoint: STORJ_ENDPOINT,
+    region: "us-east-1",
+    credentials: {
+      accessKeyId: process.env.STORJ_ACCESS_KEY_ID || "",
+      secretAccessKey: process.env.STORJ_SECRET_ACCESS_KEY || "",
+    },
+    forcePathStyle: true,
+  });
+
   const command = new PutObjectCommand({
     Bucket: BUCKET_NAME,
     Key: key,
     ContentType: contentType,
   });
 
-  return await getSignedUrl(s3Client, command, { expiresIn });
+  return await getSignedUrl(presignClient, command, { 
+    expiresIn,
+    signableHeaders: new Set(['host', 'content-type']),
+  });
 }
 
 export async function deleteFile(key: string): Promise<void> {
