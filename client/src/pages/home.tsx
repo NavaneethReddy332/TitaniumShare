@@ -891,10 +891,10 @@ export default function Home() {
                       <Button 
                         data-testid="btn-receive" 
                         onClick={handleReceive}
-                        disabled={downloadMutation.isPending}
+                        disabled={receiveDownloadStatus === "fetching"}
                         className="rounded-none h-10 w-10 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800"
                       >
-                        {downloadMutation.isPending ? (
+                        {receiveDownloadStatus === "fetching" ? (
                           <Loader2 size={14} className="text-zinc-400 animate-spin" />
                         ) : (
                           <ArrowRight size={14} className="text-zinc-400" />
