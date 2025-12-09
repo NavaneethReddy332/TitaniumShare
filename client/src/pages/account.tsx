@@ -303,134 +303,136 @@ function OverviewTab() {
         />
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5" data-testid="card-history">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">History</h3>
-          <span className="text-[10px] text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full flex items-center gap-1" data-testid="badge-live">
-            <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
-            Live
-          </span>
-        </div>
-        
-        {filesLoading ? (
-          <div className="text-center py-8">
-            <Loader2 size={24} className="text-zinc-500 mx-auto animate-spin" />
+      <div className="flex flex-col lg:flex-row gap-5">
+        {/* History Panel */}
+        <div className={`bg-zinc-950 border border-zinc-800 rounded-md p-5 transition-all duration-300 ${selectedFile ? 'flex-1 min-w-0' : 'w-full'}`} data-testid="card-history">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-white">History</h3>
+            <span className="text-[10px] text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full flex items-center gap-1" data-testid="badge-live">
+              <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+              Live
+            </span>
           </div>
-        ) : uploadedFiles.length > 0 ? (
-          <div 
-            className="space-y-2"
-            onMouseLeave={() => setHoveredFileId(null)}
-          >
-            {uploadedFiles.map((file) => (
-              <div
-                key={file.id}
-                className="relative"
-                onMouseEnter={() => setHoveredFileId(file.id)}
-              >
-                {hoveredFileId === file.id && (
-                  <motion.div
-                    layoutId="file-list-hover-bg"
-                    className={`absolute inset-0 rounded-md ${
-                      file.existsInStorage 
-                        ? 'bg-zinc-800/60' 
-                        : 'bg-red-900/20'
-                    }`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ 
-                      type: "spring", 
-                      stiffness: 350, 
-                      damping: 25,
-                      duration: 0.2
-                    }}
-                  />
-                )}
-                
+          
+          {filesLoading ? (
+            <div className="text-center py-8">
+              <Loader2 size={24} className="text-zinc-500 mx-auto animate-spin" />
+            </div>
+          ) : uploadedFiles.length > 0 ? (
+            <div 
+              className="space-y-2 max-h-[400px] overflow-y-auto"
+              onMouseLeave={() => setHoveredFileId(null)}
+            >
+              {uploadedFiles.map((file) => (
                 <div
-                  data-testid={`uploaded-file-${file.id}`}
-                  onClick={() => handleFileClick(file)}
-                  className={`relative z-10 bg-zinc-900/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
-                    file.existsInStorage 
-                      ? 'border-zinc-800' 
-                      : 'border-red-900/50'
-                  } ${hoveredFileId === file.id ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''} ${selectedFile?.id === file.id ? 'ring-1 ring-cyan-500 border-cyan-500' : ''}`}
+                  key={file.id}
+                  className="relative"
+                  onMouseEnter={() => setHoveredFileId(file.id)}
                 >
-                  {file.existsInStorage ? (
-                    <FileIcon size={16} className={`shrink-0 transition-colors ${hoveredFileId === file.id ? 'text-zinc-300' : 'text-zinc-500'}`} />
-                  ) : (
-                    <AlertTriangle size={16} className="text-red-500 shrink-0" />
+                  {hoveredFileId === file.id && (
+                    <motion.div
+                      layoutId="file-list-hover-bg"
+                      className={`absolute inset-0 rounded-md ${
+                        file.existsInStorage 
+                          ? 'bg-zinc-800/60' 
+                          : 'bg-red-900/20'
+                      }`}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 350, 
+                        damping: 25,
+                        duration: 0.2
+                      }}
+                    />
                   )}
                   
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className={`text-xs truncate transition-colors ${
-                        file.existsInStorage 
-                          ? (hoveredFileId === file.id ? 'text-white' : 'text-zinc-300')
-                          : 'text-red-400'
-                      }`}>
-                        {file.originalName}
+                  <div
+                    data-testid={`uploaded-file-${file.id}`}
+                    onClick={() => handleFileClick(file)}
+                    className={`relative z-10 bg-zinc-900/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
+                      file.existsInStorage 
+                        ? 'border-zinc-800' 
+                        : 'border-red-900/50'
+                    } ${hoveredFileId === file.id ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''} ${selectedFile?.id === file.id ? 'ring-1 ring-cyan-500 border-cyan-500' : ''}`}
+                  >
+                    {file.existsInStorage ? (
+                      <FileIcon size={16} className={`shrink-0 transition-colors ${hoveredFileId === file.id ? 'text-zinc-300' : 'text-zinc-500'}`} />
+                    ) : (
+                      <AlertTriangle size={16} className="text-red-500 shrink-0" />
+                    )}
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className={`text-xs truncate transition-colors ${
+                          file.existsInStorage 
+                            ? (hoveredFileId === file.id ? 'text-white' : 'text-zinc-300')
+                            : 'text-red-400'
+                        }`}>
+                          {file.originalName}
+                        </p>
+                      </div>
+                      <p className={`text-[10px] transition-colors ${hoveredFileId === file.id ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                        {file.existsInStorage ? `${file.sizeFormatted} - ${formatTimeAgo(file.createdAt)}` : 'File no longer exists in storage'}
                       </p>
                     </div>
-                    <p className={`text-[10px] transition-colors ${hoveredFileId === file.id ? 'text-zinc-500' : 'text-zinc-600'}`}>
-                      {file.existsInStorage ? `${file.sizeFormatted} - ${formatTimeAgo(file.createdAt)}` : 'File no longer exists in storage'}
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 shrink-0">
-                    {file.existsInStorage && (
-                      <>
-                        <button
-                          onClick={() => copyShareCode(file.shareCode)}
-                          className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors rounded-sm"
-                          data-testid={`copy-code-${file.id}`}
-                        >
-                          {copiedCode === file.shareCode ? (
-                            <><Check size={10} className="text-green-500" /> Copied</>
-                          ) : (
-                            <><Copy size={10} /> {file.shareCode}</>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => downloadMutation.mutate(file.shareCode)}
-                          className="p-1 text-zinc-500 hover:text-white transition-colors"
-                          data-testid={`download-${file.id}`}
-                        >
-                          <Download size={14} />
-                        </button>
-                      </>
-                    )}
-                    <button
-                      onClick={() => deleteMutation.mutate(file.id)}
-                      className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
-                      data-testid={`delete-${file.id}`}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    
+                    <div className="flex items-center gap-2 shrink-0">
+                      {file.existsInStorage && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); copyShareCode(file.shareCode); }}
+                            className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors rounded-sm"
+                            data-testid={`copy-code-${file.id}`}
+                          >
+                            {copiedCode === file.shareCode ? (
+                              <><Check size={10} className="text-green-500" /> Copied</>
+                            ) : (
+                              <><Copy size={10} /> {file.shareCode}</>
+                            )}
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); downloadMutation.mutate(file.shareCode); }}
+                            className="p-1 text-zinc-500 hover:text-white transition-colors"
+                            data-testid={`download-${file.id}`}
+                          >
+                            <Download size={14} />
+                          </button>
+                        </>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(file.id); }}
+                        className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
+                        data-testid={`delete-${file.id}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <FileIcon size={32} className="text-zinc-700 mx-auto mb-3" />
-            <p className="text-sm text-zinc-500">No files uploaded yet</p>
-            <p className="text-[11px] text-zinc-600 mt-1">Your uploaded files will appear here</p>
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <FileIcon size={32} className="text-zinc-700 mx-auto mb-3" />
+              <p className="text-sm text-zinc-500">No files uploaded yet</p>
+              <p className="text-[11px] text-zinc-600 mt-1">Your uploaded files will appear here</p>
+            </div>
+          )}
+        </div>
 
-      {/* File Details Panel */}
-      <AnimatePresence>
-        {selectedFile && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mt-5"
-            data-testid="file-details-panel"
-          >
+        {/* File Details Panel - Side by Side */}
+        <AnimatePresence>
+          {selectedFile && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="bg-zinc-950 border border-zinc-800 rounded-md p-5 w-full lg:w-[400px] lg:shrink-0"
+              data-testid="file-details-panel"
+            >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-white">File Details</h3>
               <button
@@ -538,7 +540,8 @@ function OverviewTab() {
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+        </AnimatePresence>
+      </div>
     </motion.div>
   );
 }

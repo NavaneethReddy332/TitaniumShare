@@ -40,6 +40,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import { Link2 } from "lucide-react";
+import { useNetworkSpeed } from "@/hooks/useNetworkSpeed";
 
 interface UploadedFile {
   id: string;
@@ -58,10 +59,6 @@ interface UploadProgress {
   status: 'uploading' | 'complete' | 'error';
 }
 
-const NETWORK_STATS = {
-  down: "80.7 Mbps",
-  up: "38.3 Mbps"
-};
 
 interface FileItemProps {
   file: UploadedFile;
@@ -333,6 +330,7 @@ export default function Home() {
   } | null>(null);
   const [receiveDownloadProgress, setReceiveDownloadProgress] = useState<number | null>(null);
   const [receiveDownloadStatus, setReceiveDownloadStatus] = useState<"idle" | "fetching" | "ready" | "downloading" | "complete" | "error">("idle");
+  const networkSpeed = useNetworkSpeed();
 
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
     queryKey: ['/api/files'],
@@ -1220,12 +1218,12 @@ export default function Home() {
           <div className="flex-1 flex justify-between items-center gap-3">
             <div className="flex flex-col">
               <span className="text-[8px] text-zinc-600 font-mono uppercase">Down</span>
-              <span className="text-[10px] text-zinc-300 font-mono">{NETWORK_STATS.down}</span>
+              <span className="text-[10px] text-zinc-300 font-mono">{networkSpeed.down}</span>
             </div>
             <div className="h-5 w-px bg-zinc-900" />
             <div className="flex flex-col text-right">
               <span className="text-[8px] text-zinc-600 font-mono uppercase">Up</span>
-              <span className="text-[10px] text-zinc-300 font-mono">{NETWORK_STATS.up}</span>
+              <span className="text-[10px] text-zinc-300 font-mono">{networkSpeed.up}</span>
             </div>
           </div>
         </div>
