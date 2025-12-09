@@ -26,7 +26,10 @@ import {
   FileIcon,
   AlertTriangle,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Lock,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -330,7 +333,27 @@ export default function Home() {
   } | null>(null);
   const [receiveDownloadProgress, setReceiveDownloadProgress] = useState<number | null>(null);
   const [receiveDownloadStatus, setReceiveDownloadStatus] = useState<"idle" | "fetching" | "ready" | "downloading" | "complete" | "error">("idle");
+  const [filePassword, setFilePassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const networkSpeed = useNetworkSpeed();
+
+  const getPasswordStrength = (password: string): { level: 0 | 1 | 2 | 3 | 4; label: string; color: string } => {
+    if (!password) return { level: 0, label: "", color: "" };
+    
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^a-zA-Z0-9]/.test(password)) score++;
+    
+    if (score <= 1) return { level: 1, label: "Weak", color: "bg-red-500" };
+    if (score === 2) return { level: 2, label: "Fair", color: "bg-orange-500" };
+    if (score === 3) return { level: 3, label: "Good", color: "bg-yellow-500" };
+    return { level: 4, label: "Strong", color: "bg-green-500" };
+  };
+
+  const passwordStrength = getPasswordStrength(filePassword);
 
   const { data: uploadedFiles = [], isLoading: filesLoading } = useQuery<UploadedFile[]>({
     queryKey: ['/api/files'],
@@ -832,6 +855,65 @@ export default function Home() {
                         </div>
                       )}
                     </div>
+
+                    {/* Password Protection Field */}
+                    <AnimatePresence>
+                      {filesToUpload.length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-2"
+                        >
+                          <div className="flex items-center gap-2 text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+                            <Lock size={12} />
+                            <span>Password Protection (Optional)</span>
+                          </div>
+                          <div className="relative">
+                            <Input
+                              type={showPassword ? "text" : "password"}
+                              value={filePassword}
+                              onChange={(e) => setFilePassword(e.target.value)}
+                              data-testid="input-file-password"
+                              placeholder="Set a password for your files"
+                              className="rounded-none border-zinc-800 bg-transparent font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700 pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              data-testid="btn-toggle-password"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                            >
+                              {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                          </div>
+                          {filePassword && (
+                            <div className="space-y-1">
+                              <div className="flex gap-1">
+                                {[1, 2, 3, 4].map((level) => (
+                                  <div
+                                    key={level}
+                                    className={`h-1 flex-1 rounded-full transition-colors ${
+                                      level <= passwordStrength.level
+                                        ? passwordStrength.color
+                                        : 'bg-zinc-800'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <p className={`text-[9px] font-mono uppercase tracking-wider ${
+                                passwordStrength.level === 1 ? 'text-red-500' :
+                                passwordStrength.level === 2 ? 'text-orange-500' :
+                                passwordStrength.level === 3 ? 'text-yellow-500' :
+                                'text-green-500'
+                              }`}>
+                                {passwordStrength.label}
+                              </p>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     {/* Upload Button */}
                     <AnimatePresence>
