@@ -16,6 +16,14 @@ export const s3Client = new S3Client({
     secretAccessKey: process.env.STORJ_SECRET_ACCESS_KEY || "",
   },
   forcePathStyle: true,
+  maxAttempts: 5,
+  requestHandler: {
+    requestTimeout: 300000,
+    httpsAgent: {
+      maxSockets: 50,
+      keepAlive: true,
+    },
+  } as any,
 });
 
 export const BUCKET_NAME = process.env.STORJ_BUCKET_NAME || "";
@@ -47,8 +55,8 @@ export async function uploadFile(
       Body: body,
       ContentType: contentType,
     },
-    queueSize: 4,
-    partSize: 1024 * 1024 * 5,
+    queueSize: 10,
+    partSize: 1024 * 1024 * 10,
     leavePartsOnError: false,
   });
 
