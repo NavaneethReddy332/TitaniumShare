@@ -51,6 +51,7 @@ interface UploadedFile {
   size: number;
   sizeFormatted: string;
   shareCode: string;
+  hasPassword: boolean;
   downloadCount: number;
   createdAt: string;
   existsInStorage: boolean;
@@ -124,6 +125,16 @@ function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovere
             }`}>
               {file.originalName}
             </p>
+            {file.hasPassword && file.existsInStorage && (
+              <Badge 
+                variant="destructive" 
+                className="text-[8px] px-1.5 py-0 h-4 uppercase tracking-wider font-bold gap-0.5"
+                data-testid={`locked-badge-${file.id}`}
+              >
+                <Lock size={8} />
+                LOCKED
+              </Badge>
+            )}
             {!file.existsInStorage && (
               <Badge 
                 variant="destructive" 
@@ -220,8 +231,8 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
     { id: 'send', icon: Send, label: 'Send', action: () => setActiveTab('cloud') },
     { id: 'receive', icon: Download, label: 'Receive', action: () => setActiveTab('cloud') },
     { id: 'account', icon: User, label: 'Account', action: onNavigateAccount },
-    { id: 'feedback', icon: MessageSquare, label: 'Feedback', action: () => {} },
-    { id: 'about', icon: Info, label: 'About', action: () => {} },
+    { id: 'feedback', icon: MessageSquare, label: 'Feedback', action: () => window.location.href = '/feedback' },
+    { id: 'about', icon: Info, label: 'About', action: () => window.location.href = '/about' },
   ];
 
   return (
@@ -495,6 +506,7 @@ export default function Home() {
         originalName: file.name,
         size: file.size,
         contentType: file.type || 'application/octet-stream',
+        password: filePassword || null,
       }),
     });
 

@@ -47,10 +47,27 @@ export const files = sqliteTable("files", {
   size: integer("size").notNull(),
   contentType: text("content_type"),
   shareCode: text("share_code").unique(),
+  password: text("password"),
   downloadCount: integer("download_count").default(0),
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
+
+export const feedback = sqliteTable("feedback", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  message: text("message").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type Feedback = typeof feedback.$inferSelect;
 
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,

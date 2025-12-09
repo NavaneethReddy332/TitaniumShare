@@ -7,6 +7,8 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Account from "@/pages/account";
 import DownloadPage from "@/pages/download";
+import FeedbackPage from "@/pages/feedback";
+import AboutPage from "@/pages/about";
 
 function Router() {
   return (
@@ -14,6 +16,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/account" component={Account} />
       <Route path="/download/:shareCode" component={DownloadPage} />
+      <Route path="/feedback" component={FeedbackPage} />
+      <Route path="/about" component={AboutPage} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -2,11 +2,14 @@ import {
   users,
   files,
   deletedAccounts,
+  feedback,
   type User,
   type InsertUser,
   type File,
   type InsertFile,
   type DeletedAccount,
+  type Feedback,
+  type InsertFeedback,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sum, gt } from "drizzle-orm";
@@ -28,6 +31,9 @@ export interface IStorage {
   addDeletedAccount(email: string, banDays: number): Promise<DeletedAccount>;
   getDeletedAccount(email: string): Promise<DeletedAccount | undefined>;
   isEmailBanned(email: string): Promise<boolean>;
+  updateFilePassword(id: string, password: string | null): Promise<void>;
+  createFeedback(feedbackData: InsertFeedback): Promise<Feedback>;
+  getAllFeedback(): Promise<Feedback[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -141,6 +147,19 @@ export class DatabaseStorage implements IStorage {
     
     if (!deleted) return false;
     return deleted.banExpiresAt > new Date();
+  }
+
+  async updateFilePassword(id: string, password: string | null): Promise<void> {
+    await db.update(files).set({ password }).where(eq(files.id, id));
+  }
+
+  async createFeedback(feedbackData: InsertFeedback): Promise<Feedback> {
+    const [fb] = await db.insert(feedback).values(feedbackData).returning();
+    return fb;
+  }
+
+  async getAllFeedback(): Promise<Feedback[]> {
+    return await db.select().from(feedback).orderBy(desc(feedback.createdAt));
   }
 }
 

@@ -238,7 +238,7 @@ export async function registerRoutes(
   app.post("/api/files/confirm", isAuthenticated, async (req, res) => {
     try {
       const user = req.user as { id: string };
-      const { storageKey, shareCode, originalName, size, contentType } = req.body;
+      const { storageKey, shareCode, originalName, size, contentType, password } = req.body;
 
       if (!storageKey || !originalName || !size) {
         return res.status(400).json({ message: "Missing required fields" });
@@ -257,6 +257,7 @@ export async function registerRoutes(
             size,
             contentType: contentType || 'application/octet-stream',
             shareCode: finalShareCode,
+            password: password || null,
             expiresAt: null,
           });
           break;
@@ -279,6 +280,7 @@ export async function registerRoutes(
         size: file.size,
         sizeFormatted: formatFileSize(file.size),
         shareCode: file.shareCode,
+        hasPassword: !!file.password,
         createdAt: file.createdAt,
       });
     } catch (error) {
@@ -352,6 +354,7 @@ export async function registerRoutes(
             size: f.size,
             sizeFormatted: formatFileSize(f.size),
             shareCode: f.shareCode,
+            hasPassword: !!f.password,
             downloadCount: f.downloadCount,
             createdAt: f.createdAt,
             existsInStorage: storjMetadata !== null,
@@ -366,7 +369,68 @@ export async function registerRoutes(
     }
   });
 
-  // Get download URL by share code
+  // Check if file requires password
+  app.get("/api/files/info/:shareCode", async (req, res) => {
+    try {
+      const { shareCode } = req.params;
+      const file = await storage.getFileByShareCode(shareCode);
+
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      if (file.expiresAt && new Date() > file.expiresAt) {
+        return res.status(410).json({ message: "File has expired" });
+      }
+
+      res.json({
+        originalName: file.originalName,
+        size: file.size,
+        sizeFormatted: formatFileSize(file.size),
+        requiresPassword: !!file.password,
+      });
+    } catch (error) {
+      console.error("File info error:", error);
+      res.status(500).json({ message: "Failed to get file info" });
+    }
+  });
+
+  // Get download URL by share code (with password check)
+  app.post("/api/files/download/:shareCode", async (req, res) => {
+    try {
+      const { shareCode } = req.params;
+      const { password } = req.body || {};
+      const file = await storage.getFileByShareCode(shareCode);
+
+      if (!file) {
+        return res.status(404).json({ message: "File not found" });
+      }
+
+      if (file.expiresAt && new Date() > file.expiresAt) {
+        return res.status(410).json({ message: "File has expired" });
+      }
+
+      // Check password if file is protected
+      if (file.password && file.password !== password) {
+        return res.status(401).json({ message: "Invalid password", requiresPassword: true });
+      }
+
+      const downloadUrl = await getDownloadUrl(file.storageKey, 3600);
+      await storage.incrementDownloadCount(file.id);
+
+      res.json({
+        url: downloadUrl,
+        originalName: file.originalName,
+        size: file.size,
+        sizeFormatted: formatFileSize(file.size),
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      res.status(500).json({ message: "Download failed" });
+    }
+  });
+
+  // Legacy GET endpoint for backwards compatibility (redirects to info)
   app.get("/api/files/download/:shareCode", async (req, res) => {
     try {
       const { shareCode } = req.params;
@@ -378,6 +442,17 @@ export async function registerRoutes(
 
       if (file.expiresAt && new Date() > file.expiresAt) {
         return res.status(410).json({ message: "File has expired" });
+      }
+
+      // If file has password, require POST with password
+      if (file.password) {
+        return res.status(401).json({ 
+          message: "This file requires a password", 
+          requiresPassword: true,
+          originalName: file.originalName,
+          size: file.size,
+          sizeFormatted: formatFileSize(file.size),
+        });
       }
 
       const downloadUrl = await getDownloadUrl(file.storageKey, 3600);
@@ -563,6 +638,41 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Delete account error:", error);
       res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
+  // Submit feedback
+  app.post("/api/feedback", async (req, res) => {
+    try {
+      const { name, email, message } = req.body;
+      if (!name || !email || !message) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      const fb = await storage.createFeedback({ name, email, message });
+      res.json({ message: "Feedback submitted successfully", id: fb.id });
+    } catch (error) {
+      console.error("Feedback error:", error);
+      res.status(500).json({ message: "Failed to submit feedback" });
+    }
+  });
+
+  // Admin login
+  app.post("/api/admin/login", (req, res) => {
+    const { username, password } = req.body;
+    if (username === "knullsensi" && password === "Knull@123sensi") {
+      res.json({ success: true, message: "Admin login successful" });
+    } else {
+      res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+  });
+
+  // Get all feedback (admin only - simple check)
+  app.get("/api/admin/feedback", async (req, res) => {
+    try {
+      const feedbacks = await storage.getAllFeedback();
+      res.json(feedbacks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get feedback" });
     }
   });
 
