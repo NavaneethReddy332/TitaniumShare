@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   LayoutDashboard, 
@@ -29,6 +29,7 @@ import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -182,6 +183,28 @@ interface UploadedFile {
   existsInStorage: boolean;
 }
 
+function useIsXlScreen() {
+  const [isXl, setIsXl] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.matchMedia('(min-width: 1280px)').matches;
+    }
+    return false;
+  });
+  
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const mediaQuery = window.matchMedia('(min-width: 1280px)');
+    const handler = (e: MediaQueryListEvent) => setIsXl(e.matches);
+    
+    setIsXl(mediaQuery.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
+  
+  return isXl;
+}
+
 function OverviewTab() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -189,6 +212,7 @@ function OverviewTab() {
   const [hoveredFileId, setHoveredFileId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<UploadedFile | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const isXlScreen = useIsXlScreen();
   
   const { data: storageData, isLoading: storageLoading } = useQuery<StorageData>({
     queryKey: ['/api/account/storage'],
@@ -303,9 +327,9 @@ function OverviewTab() {
         />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-5">
-        {/* History Panel */}
-        <div className={`bg-zinc-950 border border-zinc-800 rounded-md p-5 transition-all duration-300 ${selectedFile ? 'flex-1 min-w-0' : 'w-full'}`} data-testid="card-history">
+      <div className="flex flex-row gap-5">
+        {/* History Panel - Always full width, no shrinking */}
+        <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 flex-1" data-testid="card-history">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-white">History</h3>
             <span className="text-[10px] text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full flex items-center gap-1" data-testid="badge-live">
@@ -423,29 +447,27 @@ function OverviewTab() {
           )}
         </div>
 
-        {/* File Details Panel - Side by Side */}
+        {/* File Details Panel - Side panel on xl screens */}
         <AnimatePresence>
           {selectedFile && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="bg-zinc-950 border border-zinc-800 rounded-md p-5 w-full lg:w-[400px] lg:shrink-0"
+              className="hidden xl:block bg-zinc-950 border border-zinc-800 rounded-md p-5 w-[420px] shrink-0"
               data-testid="file-details-panel"
             >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white">File Details</h3>
-              <button
-                onClick={() => setSelectedFile(null)}
-                className="text-zinc-500 hover:text-white transition-colors p-1"
-                data-testid="btn-close-details"
-              >
-                <X size={16} />
-              </button>
-            </div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-semibold text-white">File Details</h3>
+                <button
+                  onClick={() => setSelectedFile(null)}
+                  className="text-zinc-500 hover:text-white transition-colors p-1"
+                  data-testid="btn-close-details"
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Left Column - File Info */}
               <div className="space-y-4">
                 {/* File Name */}
                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
@@ -490,10 +512,7 @@ function OverviewTab() {
                     <span className="text-sm text-white font-medium">{formatTimeAgo(selectedFile.createdAt)}</span>
                   </div>
                 </div>
-              </div>
 
-              {/* Right Column - QR Code & Actions */}
-              <div className="space-y-4">
                 {/* QR Code */}
                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4 flex flex-col items-center">
                   <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-3 self-start">QR Code</div>
@@ -537,11 +556,106 @@ function OverviewTab() {
                   </Button>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
         </AnimatePresence>
       </div>
+
+      {/* Mobile/Tablet Modal for File Details - Only render on non-xl screens */}
+      {!isXlScreen && (
+        <Dialog open={selectedFile !== null} onOpenChange={(open) => !open && setSelectedFile(null)}>
+          <DialogContent className="bg-zinc-950 border-zinc-800 max-w-md max-h-[90vh] overflow-y-auto">
+          {selectedFile && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">File Details</h3>
+              
+              {/* File Name */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Name</div>
+                <div className="flex items-center gap-2">
+                  <FileIcon size={16} className="text-cyan-500 shrink-0" />
+                  <p className="text-white text-sm font-medium truncate">
+                    {selectedFile.originalName}
+                  </p>
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1">{selectedFile.sizeFormatted}</p>
+              </div>
+
+              {/* Share Code */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Share Code</div>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-mono font-bold text-cyan-400 tracking-widest">
+                    {selectedFile.shareCode}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => copyShareCode(selectedFile.shareCode)}
+                    className="text-[10px]"
+                  >
+                    {copiedCode === selectedFile.shareCode ? <Check size={12} /> : <Copy size={12} />}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Stats */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Statistics</div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-zinc-400">Downloads</span>
+                  <span className="text-sm text-white font-medium">{selectedFile.downloadCount}</span>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <span className="text-xs text-zinc-400">Uploaded</span>
+                  <span className="text-sm text-white font-medium">{formatTimeAgo(selectedFile.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* QR Code */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4 flex flex-col items-center">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-3 self-start">QR Code</div>
+                <div className="bg-white p-3 rounded-md">
+                  <QRCodeSVG 
+                    value={getDownloadUrl(selectedFile.shareCode)} 
+                    size={140}
+                    level="M"
+                  />
+                </div>
+                <p className="text-[9px] text-zinc-600 mt-2">Scan to download</p>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2">
+                <Button
+                  onClick={() => copyDownloadLink(selectedFile.shareCode)}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  {copiedLink ? <Check size={14} className="mr-2 text-green-500" /> : <Link2 size={14} className="mr-2" />}
+                  {copiedLink ? "Link Copied!" : "Copy Download Link"}
+                </Button>
+                <Button
+                  onClick={() => downloadMutation.mutate(selectedFile.shareCode)}
+                  className="w-full justify-start"
+                >
+                  <Download size={14} className="mr-2" />
+                  Download File
+                </Button>
+                <Button
+                  onClick={() => { deleteMutation.mutate(selectedFile.id); setSelectedFile(null); }}
+                  variant="destructive"
+                  className="w-full justify-start"
+                >
+                  <Trash2 size={14} className="mr-2" />
+                  Delete File
+                </Button>
+              </div>
+            </div>
+          )}
+          </DialogContent>
+        </Dialog>
+      )}
     </motion.div>
   );
 }
