@@ -96,8 +96,8 @@ function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovere
           layoutId="file-list-hover-bg"
           className={`absolute inset-0 rounded-md ${
             file.existsInStorage 
-              ? 'bg-zinc-800/60' 
-              : 'bg-red-900/20'
+              ? 'bg-accent/60' 
+              : 'bg-destructive/20'
           }`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -115,24 +115,24 @@ function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovere
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         data-testid={`uploaded-file-${file.id}`}
-        className={`relative z-10 bg-zinc-900/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
+        className={`relative z-10 bg-secondary/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
           file.existsInStorage 
-            ? 'border-zinc-800' 
-            : 'border-red-900/50'
-        } ${isHovered ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''}`}
+            ? 'border-border' 
+            : 'border-destructive/50'
+        } ${isHovered ? (file.existsInStorage ? 'border-muted-foreground/50' : 'border-destructive/70') : ''}`}
       >
         {file.existsInStorage ? (
-          <FileIcon size={16} className={`shrink-0 transition-colors ${isHovered ? 'text-zinc-300' : 'text-zinc-500'}`} />
+          <FileIcon size={16} className={`shrink-0 transition-colors ${isHovered ? 'text-foreground/80' : 'text-muted-foreground'}`} />
         ) : (
-          <AlertTriangle size={16} className="text-red-500 shrink-0" />
+          <AlertTriangle size={16} className="text-destructive shrink-0" />
         )}
         
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <p className={`text-xs truncate transition-colors ${
               file.existsInStorage 
-                ? (isHovered ? 'text-white' : 'text-zinc-300')
-                : 'text-red-400'
+                ? (isHovered ? 'text-foreground' : 'text-foreground/80')
+                : 'text-destructive'
             }`}>
               {file.originalName}
             </p>
@@ -156,7 +156,7 @@ function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovere
               </Badge>
             )}
           </div>
-          <p className={`text-[10px] transition-colors ${isHovered ? 'text-zinc-500' : 'text-zinc-600'}`}>
+          <p className={`text-[10px] transition-colors ${isHovered ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
             {file.existsInStorage ? file.sizeFormatted : 'File no longer exists in storage'}
           </p>
         </div>
@@ -166,7 +166,7 @@ function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovere
             <>
               <button
                 onClick={() => onCopyCode(file.shareCode)}
-                className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors rounded-sm"
+                className="flex items-center gap-1 px-2 py-1 bg-accent text-[10px] font-mono hover:bg-accent/80 transition-colors rounded-sm"
                 data-testid={`copy-code-${file.id}`}
               >
                 {copiedCode === file.shareCode ? (
@@ -177,7 +177,7 @@ function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovere
               </button>
               <button
                 onClick={() => onDownload(file.shareCode)}
-                className="p-1 text-zinc-500 hover:text-white transition-colors"
+                className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                 data-testid={`download-${file.id}`}
               >
                 <Download size={14} />
@@ -186,7 +186,7 @@ function FileItem({ file, onCopyCode, onDownload, onDelete, copiedCode, isHovere
           )}
           <button
             onClick={() => onDelete(file.id)}
-            className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
+            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
             data-testid={`delete-${file.id}`}
           >
             <Trash2 size={14} />
@@ -249,7 +249,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
   return (
     <>
       <div className="sidebar-trigger-area" />
-      <div className="sidebar-container bg-black/90 backdrop-blur-xl border-l border-zinc-800 flex flex-col items-center py-6">
+      <div className="sidebar-container bg-background/90 backdrop-blur-xl border-l border-border flex flex-col items-center py-6">
         
         <nav 
           className="flex-1 flex flex-col w-full px-2 gap-1"
@@ -264,7 +264,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
               {hoveredItem === item.id && (
                 <motion.div
                   layoutId="sidebar-hover-bg"
-                  className="absolute inset-0 bg-zinc-800/80 rounded-lg"
+                  className="absolute inset-0 bg-accent/80 rounded-lg"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
@@ -286,15 +286,15 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
                   size={18} 
                   className={`transition-colors duration-200 shrink-0 ${
                     hoveredItem === item.id || activeTab === item.id 
-                      ? 'text-white' 
-                      : 'text-zinc-500'
+                      ? 'text-foreground' 
+                      : 'text-muted-foreground'
                   }`} 
                 />
                 
                 <span className={`sidebar-label text-[10px] font-mono uppercase tracking-widest transition-colors ${
                   hoveredItem === item.id || activeTab === item.id 
-                    ? 'text-white' 
-                    : 'text-zinc-500'
+                    ? 'text-foreground' 
+                    : 'text-muted-foreground'
                 }`}>
                   {item.label}
                 </span>
@@ -311,7 +311,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
           {hoveredItem === 'logout' && (
              <motion.div
                layoutId="sidebar-hover-bg"
-               className="absolute inset-0 bg-red-900/20 rounded-lg"
+               className="absolute inset-0 bg-destructive/20 rounded-lg"
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }}
                exit={{ opacity: 0 }}
@@ -322,7 +322,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
             <button 
               onClick={onLogout}
               data-testid="sidebar-logout"
-              className="relative z-10 p-3 w-full flex justify-center text-zinc-500 hover:text-red-500 transition-colors"
+              className="relative z-10 p-3 w-full flex justify-center text-muted-foreground hover:text-destructive transition-colors"
             >
               <LogOut size={18} />
             </button>
@@ -1003,17 +1003,17 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen bg-black text-white font-mono selection:bg-white selection:text-black flex flex-col overflow-hidden">
+    <div className="h-screen bg-background text-foreground font-mono selection:bg-foreground selection:text-background flex flex-col overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-900 transition-all duration-300 shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border transition-all duration-300 shrink-0">
         <TitaniumLogo />
         
-        <nav className="hidden md:flex items-center gap-6 text-xs text-zinc-500">
-          <button data-testid="nav-send" className="hover:text-white transition-colors uppercase tracking-wider">Send</button>
-          <span className="text-zinc-800">/</span>
-          <button data-testid="nav-receive" className="hover:text-white transition-colors uppercase tracking-wider">Receive</button>
-          <span className="text-zinc-800">/</span>
-          <button data-testid="nav-tempmail" className="border border-zinc-700 px-2 py-1 text-zinc-300 hover:bg-zinc-900 transition-colors uppercase tracking-wider">
+        <nav className="hidden md:flex items-center gap-6 text-xs text-muted-foreground">
+          <button data-testid="nav-send" className="hover:text-foreground transition-colors uppercase tracking-wider">Send</button>
+          <span className="text-border">/</span>
+          <button data-testid="nav-receive" className="hover:text-foreground transition-colors uppercase tracking-wider">Receive</button>
+          <span className="text-border">/</span>
+          <button data-testid="nav-tempmail" className="border border-border px-2 py-1 text-foreground/80 hover:bg-secondary transition-colors uppercase tracking-wider">
             Temp Mail
           </button>
         </nav>
@@ -1028,16 +1028,16 @@ export default function Home() {
               >
                 <Avatar className="h-7 w-7">
                   <AvatarImage src={user.profileImageUrl || undefined} alt={user.username || 'User'} className="object-cover" />
-                  <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs">
+                  <AvatarFallback className="bg-secondary text-muted-foreground text-xs">
                     {user.username?.[0] || user.email?.[0] || 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-zinc-400 text-xs">{user.username || user.email}</span>
+                <span className="text-muted-foreground text-xs">{user.username || user.email}</span>
               </button>
               <button 
                 onClick={() => logout()}
                 data-testid="btn-logout"
-                className="text-zinc-500 hover:text-red-500 transition-colors"
+                className="text-muted-foreground hover:text-destructive transition-colors"
               >
                 <LogOut size={14} />
               </button>
@@ -1048,7 +1048,7 @@ export default function Home() {
               variant="ghost" 
               size="sm" 
               onClick={() => setShowAuthModal(true)}
-              className="hidden md:flex text-zinc-400 hover:text-white gap-2 text-xs"
+              className="hidden md:flex text-muted-foreground hover:text-foreground gap-2 text-xs"
             >
               <User size={14} />
               LOGIN
@@ -1067,21 +1067,21 @@ export default function Home() {
         <main className="flex-1 flex flex-col md:flex-row pr-4 transition-all duration-300 overflow-auto">
         
         {/* Left Panel - Controls */}
-        <div className="w-full md:w-[26rem] border-r border-zinc-900 p-5 flex flex-col gap-6 z-10 bg-black">
+        <div className="w-full md:w-[26rem] border-r border-border p-5 flex flex-col gap-6 z-10 bg-background">
           
           <Tabs defaultValue="cloud" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full bg-transparent border-b border-zinc-900 p-0 h-auto justify-start gap-6 rounded-none">
+            <TabsList className="w-full bg-transparent border-b border-border p-0 h-auto justify-start gap-6 rounded-none">
               <TabsTrigger 
                 value="cloud" 
                 data-testid="tab-cloud"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-[10px] hover:text-zinc-300 transition-colors"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-0 pb-2 text-muted-foreground data-[state=active]:text-foreground font-mono uppercase tracking-wider text-[10px] hover:text-foreground/80 transition-colors"
               >
                 Cloud Upload
               </TabsTrigger>
               <TabsTrigger 
                 value="p2p" 
                 data-testid="tab-p2p"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-white data-[state=active]:bg-transparent px-0 pb-2 text-zinc-500 data-[state=active]:text-white font-mono uppercase tracking-wider text-[10px] hover:text-zinc-300 transition-colors"
+                className="rounded-none border-b-2 border-transparent data-[state=active]:border-foreground data-[state=active]:bg-transparent px-0 pb-2 text-muted-foreground data-[state=active]:text-foreground font-mono uppercase tracking-wider text-[10px] hover:text-foreground/80 transition-colors"
               >
                 P2P Transfer
               </TabsTrigger>
@@ -1092,7 +1092,7 @@ export default function Home() {
                 <>
                   {/* SEND SECTION */}
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
                       <span>Send</span>
                     </div>
 
@@ -1101,10 +1101,10 @@ export default function Home() {
                       {...getRootProps()} 
                       data-testid="dropzone"
                       className={`
-                        border border-dashed border-zinc-800 rounded-none p-4
+                        border border-dashed border-border rounded-none p-4
                         transition-all duration-300 cursor-pointer
-                        hover:border-zinc-600 hover:bg-zinc-900/30
-                        ${isDragActive ? 'border-white bg-zinc-900/50' : ''}
+                        hover:border-muted-foreground/50 hover:bg-secondary/30
+                        ${isDragActive ? 'border-foreground bg-secondary/50' : ''}
                         ${(filesToUpload.length > 0 || uploadProgress.length > 0 || compressionProgress.status !== 'idle') ? 'min-h-[120px]' : ''}
                       `}
                     >
@@ -1113,8 +1113,8 @@ export default function Home() {
                       {/* Empty state */}
                       {filesToUpload.length === 0 && uploadProgress.length === 0 && compressionProgress.status === 'idle' && (
                         <div className="flex flex-col items-center justify-center gap-3 py-4">
-                          <Upload size={20} className="text-zinc-600" />
-                          <p className="text-zinc-500 text-xs font-mono text-center">
+                          <Upload size={20} className="text-muted-foreground/70" />
+                          <p className="text-muted-foreground text-xs font-mono text-center">
                             {isDragActive ? "DROP FILES HERE" : "drop or click (files/folders)"}
                           </p>
                         </div>
@@ -1124,14 +1124,14 @@ export default function Home() {
                       {filesToUpload.length > 0 && compressionProgress.status === 'idle' && (
                         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                           {filesToUpload.map((file, idx) => (
-                            <div key={`pending-${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800 text-[10px]">
+                            <div key={`pending-${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-secondary/50 border border-border text-[10px]">
                               <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <FileIcon size={12} className="text-zinc-500 shrink-0" />
-                                <span className="truncate text-zinc-300">{file.name}</span>
+                                <FileIcon size={12} className="text-muted-foreground shrink-0" />
+                                <span className="truncate text-foreground/80">{file.name}</span>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-zinc-600 text-[9px]">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
-                                <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-zinc-500 hover:text-red-500">
+                                <span className="text-muted-foreground/70 text-[9px]">{(file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                <button onClick={(e) => { e.stopPropagation(); removeFile(file.name); }} className="text-muted-foreground hover:text-destructive">
                                   <X size={12} />
                                 </button>
                               </div>
@@ -1152,27 +1152,27 @@ export default function Home() {
                               ) : (
                                 <Upload size={14} className="text-green-500 animate-pulse" />
                               )}
-                              <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">
+                              <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-wider">
                                 {compressionProgress.status === 'compressing' ? 'Compressing' : compressionProgress.status === 'complete' ? 'Complete' : 'Uploading'}
                               </span>
                             </div>
-                            <span className="text-[10px] text-white font-mono" data-testid="text-progress-percent">
+                            <span className="text-[10px] text-foreground font-mono" data-testid="text-progress-percent">
                               {compressionProgress.progress}%
                             </span>
                           </div>
                           
-                          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                          <div className="h-2 bg-secondary rounded-full overflow-hidden">
                             <motion.div 
                               initial={{ width: 0 }}
                               animate={{ width: `${compressionProgress.progress}%` }}
                               transition={{ duration: 0.1 }}
-                              className={`h-full ${compressionProgress.status === 'complete' ? 'bg-green-500' : compressionProgress.status === 'compressing' ? 'bg-cyan-500' : 'bg-white'}`}
+                              className={`h-full ${compressionProgress.status === 'complete' ? 'bg-green-500' : compressionProgress.status === 'compressing' ? 'bg-cyan-500' : 'bg-foreground'}`}
                               data-testid="progress-compression"
                             />
                           </div>
                           
                           <div className="flex items-center justify-between">
-                            <p className="text-[9px] text-zinc-500 font-mono truncate max-w-[180px]" data-testid="text-current-file">
+                            <p className="text-[9px] text-muted-foreground font-mono truncate max-w-[180px]" data-testid="text-current-file">
                               {compressionProgress.status === 'compressing' 
                                 ? `${compressionProgress.processedFiles}/${compressionProgress.totalFiles} - ${compressionProgress.currentFile}`
                                 : compressionProgress.status === 'complete'
@@ -1185,7 +1185,7 @@ export default function Home() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={(e) => { e.stopPropagation(); handleCancelOperation(); }}
-                                className="h-6 px-2 text-[9px] text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                className="h-6 px-2 text-[9px] text-destructive hover:text-destructive/80 hover:bg-destructive/20"
                                 data-testid="btn-cancel-operation"
                               >
                                 <XCircle size={12} className="mr-1" />
@@ -1216,22 +1216,22 @@ export default function Home() {
                       {uploadProgress.length > 0 && compressionProgress.status === 'idle' && (
                         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                           {uploadProgress.map((p, idx) => (
-                            <div key={`progress-${idx}`} className="p-2 bg-zinc-900/50 border border-zinc-800">
+                            <div key={`progress-${idx}`} className="p-2 bg-secondary/50 border border-border">
                               <div className="flex items-center justify-between text-[10px] mb-1">
                                 <div className="flex items-center gap-2 flex-1 min-w-0">
-                                  <FileIcon size={12} className="text-zinc-500 shrink-0" />
-                                  <span className="truncate text-zinc-300">{p.fileName}</span>
+                                  <FileIcon size={12} className="text-muted-foreground shrink-0" />
+                                  <span className="truncate text-foreground/80">{p.fileName}</span>
                                 </div>
-                                <span className={`shrink-0 ml-2 ${p.status === 'complete' ? 'text-green-500' : p.status === 'error' ? 'text-red-500' : 'text-zinc-400'}`}>
+                                <span className={`shrink-0 ml-2 ${p.status === 'complete' ? 'text-green-500' : p.status === 'error' ? 'text-destructive' : 'text-muted-foreground'}`}>
                                   {p.status === 'complete' ? 'Done' : p.status === 'error' ? 'Failed' : `${p.progress}%`}
                                 </span>
                               </div>
-                              <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                              <div className="h-1 bg-secondary rounded-full overflow-hidden">
                                 <motion.div 
                                   initial={{ width: 0 }}
                                   animate={{ width: `${p.progress}%` }}
                                   transition={{ duration: 0.1 }}
-                                  className={`h-full ${p.status === 'complete' ? 'bg-green-500' : p.status === 'error' ? 'bg-red-500' : 'bg-white'}`}
+                                  className={`h-full ${p.status === 'complete' ? 'bg-green-500' : p.status === 'error' ? 'bg-destructive' : 'bg-foreground'}`}
                                 />
                               </div>
                             </div>
@@ -1241,9 +1241,9 @@ export default function Home() {
 
                       {/* Add more files hint when files exist */}
                       {(filesToUpload.length > 0 || uploadProgress.length > 0) && compressionProgress.status === 'idle' && (
-                        <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-zinc-800/50">
-                          <Upload size={12} className="text-zinc-600" />
-                          <span className="text-zinc-600 text-[9px] font-mono">DROP MORE FILES</span>
+                        <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-border/50">
+                          <Upload size={12} className="text-muted-foreground/70" />
+                          <span className="text-muted-foreground/70 text-[9px] font-mono">DROP MORE FILES</span>
                         </div>
                       )}
                     </div>
@@ -1257,7 +1257,7 @@ export default function Home() {
                           exit={{ opacity: 0, height: 0 }}
                           className="space-y-2"
                         >
-                          <div className="flex items-center gap-2 text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
                             <Lock size={12} />
                             <span>Password Protection (Optional)</span>
                           </div>
@@ -1268,13 +1268,13 @@ export default function Home() {
                               onChange={(e) => setFilePassword(e.target.value)}
                               data-testid="input-file-password"
                               placeholder="Set a password for your files"
-                              className="rounded-none border-zinc-800 bg-transparent font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700 pr-10"
+                              className="rounded-none border-border bg-transparent font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-foreground transition-colors placeholder:text-muted-foreground/50 pr-10"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
                               data-testid="btn-toggle-password"
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors"
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/80 transition-colors"
                             >
                               {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                             </button>
@@ -1288,7 +1288,7 @@ export default function Home() {
                                     className={`h-1 flex-1 rounded-full transition-colors ${
                                       level <= passwordStrength.level
                                         ? passwordStrength.color
-                                        : 'bg-zinc-800'
+                                        : 'bg-secondary'
                                     }`}
                                   />
                                 ))}
@@ -1319,7 +1319,7 @@ export default function Home() {
                             data-testid="btn-start-upload" 
                             onClick={handleUploadAll}
                             disabled={uploadProgress.some(p => p.status === 'uploading') || compressionProgress.status !== 'idle'}
-                            className="w-full rounded-none bg-white text-black hover:bg-zinc-200 font-mono text-[10px] uppercase font-bold h-10"
+                            className="w-full rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] uppercase font-bold h-10"
                           >
                             {filesToUpload.length > 1 ? (
                               <>
@@ -1339,18 +1339,18 @@ export default function Home() {
                       data-testid="btn-select-files"
                       onClick={(e) => { e.stopPropagation(); }}
                       {...getRootProps()}
-                      className="w-full rounded-none border-zinc-800 bg-transparent text-zinc-400 hover:bg-zinc-900 hover:text-white hover:border-zinc-700 h-10 font-mono text-[10px] uppercase tracking-widest"
+                      className="w-full rounded-none border-border bg-transparent text-muted-foreground hover:bg-secondary hover:text-foreground hover:border-muted-foreground/50 h-10 font-mono text-[10px] uppercase tracking-widest"
                     >
                       <FolderOpen size={14} className="mr-2" />
                       Select File(s)
                     </Button>
                   </div>
 
-                  <Separator className="bg-zinc-900" />
+                  <Separator className="bg-border" />
 
                   {/* RECEIVE SECTION */}
                   <div className="space-y-3">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono">
                       Receive
                     </div>
                     
@@ -1361,18 +1361,18 @@ export default function Home() {
                         onKeyDown={(e) => e.key === 'Enter' && handleReceive()}
                         data-testid="input-receive-code"
                         placeholder="Enter share code" 
-                        className="rounded-none border-zinc-800 bg-transparent text-center font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-white transition-colors placeholder:text-zinc-700 uppercase"
+                        className="rounded-none border-border bg-transparent text-center font-mono text-xs h-10 focus-visible:ring-0 focus-visible:border-foreground transition-colors placeholder:text-muted-foreground/50 uppercase"
                       />
                       <Button 
                         data-testid="btn-receive" 
                         onClick={handleReceive}
                         disabled={receiveDownloadStatus === "fetching"}
-                        className="rounded-none h-10 w-10 bg-zinc-900 border border-l-0 border-zinc-800 hover:bg-zinc-800"
+                        className="rounded-none h-10 w-10 bg-secondary border border-l-0 border-border hover:bg-accent"
                       >
                         {receiveDownloadStatus === "fetching" ? (
-                          <Loader2 size={14} className="text-zinc-400 animate-spin" />
+                          <Loader2 size={14} className="text-muted-foreground animate-spin" />
                         ) : (
-                          <ArrowRight size={14} className="text-zinc-400" />
+                          <ArrowRight size={14} className="text-muted-foreground" />
                         )}
                       </Button>
                     </div>
@@ -1385,13 +1385,13 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col items-center justify-center py-16 text-center"
                 >
-                  <div className="w-16 h-16 border border-zinc-800 rounded-full flex items-center justify-center mb-4">
-                    <Share2 size={24} className="text-zinc-600" />
+                  <div className="w-16 h-16 border border-border rounded-full flex items-center justify-center mb-4">
+                    <Share2 size={24} className="text-muted-foreground/70" />
                   </div>
-                  <h3 className="text-white font-mono text-sm uppercase tracking-widest mb-2">P2P Transfer</h3>
-                  <p className="text-zinc-500 text-xs font-mono">Coming Soon</p>
-                  <div className="mt-4 px-3 py-1 border border-zinc-800 bg-zinc-900/50">
-                    <span className="text-[9px] text-zinc-400 font-mono uppercase tracking-wider">Under Development</span>
+                  <h3 className="text-foreground font-mono text-sm uppercase tracking-widest mb-2">P2P Transfer</h3>
+                  <p className="text-muted-foreground text-xs font-mono">Coming Soon</p>
+                  <div className="mt-4 px-3 py-1 border border-border bg-secondary/50">
+                    <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">Under Development</span>
                   </div>
                 </motion.div>
               )}
@@ -1400,11 +1400,11 @@ export default function Home() {
         </div>
 
         {/* Right Panel - Visualization / Status */}
-        <div className="flex-1 bg-black relative overflow-hidden flex items-center justify-center">
+        <div className="flex-1 bg-background relative overflow-hidden flex items-center justify-center">
           {/* Background Grid */}
           <div className="absolute inset-0 opacity-[0.03]" 
             style={{ 
-              backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
+              backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)',
               backgroundSize: '32px 32px'
             }} 
           />
@@ -1422,7 +1422,7 @@ export default function Home() {
                 <div className="flex justify-end mb-4">
                   <button
                     onClick={clearLastUploadedFile}
-                    className="text-zinc-500 hover:text-white transition-colors p-1"
+                    className="text-muted-foreground hover:text-foreground transition-colors p-1"
                     data-testid="btn-close-file-details"
                   >
                     <X size={16} />
@@ -1434,22 +1434,22 @@ export default function Home() {
                   {/* Left Column - File Info */}
                   <div className="space-y-6">
                     {/* File Name */}
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Name</div>
+                    <div className="bg-secondary/50 border border-border rounded-md p-4">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">File Name</div>
                       <div className="flex items-center gap-2">
                         <FileIcon size={16} className="text-cyan-500 shrink-0" />
-                        <p className="text-white text-sm font-medium truncate" data-testid="text-file-name">
+                        <p className="text-foreground text-sm font-medium truncate" data-testid="text-file-name">
                           {lastUploadedFile.originalName}
                         </p>
                       </div>
-                      <p className="text-[10px] text-zinc-500 mt-1">{lastUploadedFile.sizeFormatted}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{lastUploadedFile.sizeFormatted}</p>
                     </div>
 
                     {/* Share Code */}
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Share Code</div>
+                    <div className="bg-secondary/50 border border-border rounded-md p-4">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">Share Code</div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-black border border-zinc-700 px-3 py-2 rounded-md">
+                        <div className="flex-1 bg-background border border-muted-foreground/30 px-3 py-2 rounded-md">
                           <span className="text-lg font-bold font-mono text-cyan-400 tracking-widest" data-testid="text-share-code">
                             {lastUploadedFile.shareCode}
                           </span>
@@ -1459,7 +1459,7 @@ export default function Home() {
                           size="icon"
                           onClick={() => copyShareCode(lastUploadedFile.shareCode)}
                           data-testid="btn-copy-code"
-                          className="border-zinc-700 hover:bg-zinc-800"
+                          className="border-muted-foreground/30 hover:bg-accent"
                         >
                           {copiedCode === lastUploadedFile.shareCode ? (
                             <Check size={14} className="text-green-500" />
@@ -1471,11 +1471,11 @@ export default function Home() {
                     </div>
 
                     {/* Download Link */}
-                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Download Link</div>
+                    <div className="bg-secondary/50 border border-border rounded-md p-4">
+                      <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">Download Link</div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-black border border-zinc-700 px-3 py-2 rounded-md overflow-hidden">
-                          <span className="text-xs text-zinc-400 font-mono truncate block" data-testid="text-download-link">
+                        <div className="flex-1 bg-background border border-muted-foreground/30 px-3 py-2 rounded-md overflow-hidden">
+                          <span className="text-xs text-muted-foreground font-mono truncate block" data-testid="text-download-link">
                             {getDownloadUrl(lastUploadedFile.shareCode)}
                           </span>
                         </div>
@@ -1484,7 +1484,7 @@ export default function Home() {
                           size="icon"
                           onClick={() => copyDownloadLink(lastUploadedFile.shareCode)}
                           data-testid="btn-copy-link"
-                          className="border-zinc-700 hover:bg-zinc-800"
+                          className="border-muted-foreground/30 hover:bg-accent"
                         >
                           {copiedLink ? (
                             <Check size={14} className="text-green-500" />
@@ -1500,7 +1500,7 @@ export default function Home() {
                       onClick={() => handleDownloadFile(lastUploadedFile.shareCode)}
                       disabled={downloadMutation.isPending}
                       data-testid="btn-download-file"
-                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono uppercase tracking-wider"
+                      className="w-full bg-cyan-600 hover:bg-cyan-700 text-foreground font-mono uppercase tracking-wider"
                     >
                       {downloadMutation.isPending ? (
                         <><Loader2 size={14} className="mr-2 animate-spin" /> Downloading...</>
@@ -1521,7 +1521,7 @@ export default function Home() {
                         data-testid="qr-code"
                       />
                     </div>
-                    <p className="text-[10px] text-zinc-500 mt-3 text-center font-mono uppercase tracking-wider">
+                    <p className="text-[10px] text-muted-foreground mt-3 text-center font-mono uppercase tracking-wider">
                       Scan to Download
                     </p>
                   </div>
@@ -1538,7 +1538,7 @@ export default function Home() {
                 <div className="flex justify-end mb-4">
                   <button
                     onClick={clearReceivedFile}
-                    className="text-zinc-500 hover:text-white transition-colors p-1"
+                    className="text-muted-foreground hover:text-foreground transition-colors p-1"
                     data-testid="btn-close-received-file"
                   >
                     <X size={16} />
@@ -1546,8 +1546,8 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-6">
-                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2 flex items-center gap-2">
+                  <div className="bg-secondary/50 border border-border rounded-md p-4">
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2 flex items-center gap-2">
                       {receivedFileInfo.requiresPassword ? (
                         <>
                           <Lock size={12} className="text-red-400" />
@@ -1560,14 +1560,14 @@ export default function Home() {
                     <div className="flex items-center gap-3">
                       <FileIcon size={24} className={receivedFileInfo.requiresPassword ? "text-red-400 shrink-0" : "text-green-500 shrink-0"} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-medium truncate" data-testid="text-received-filename">
+                        <p className="text-foreground text-sm font-medium truncate" data-testid="text-received-filename">
                           {receivedFileInfo.originalName}
                         </p>
-                        <p className="text-[10px] text-zinc-500">{receivedFileInfo.sizeFormatted}</p>
+                        <p className="text-[10px] text-muted-foreground">{receivedFileInfo.sizeFormatted}</p>
                       </div>
                     </div>
                     <div className="mt-2 flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-600 font-mono">Code:</span>
+                      <span className="text-[10px] text-muted-foreground/70 font-mono">Code:</span>
                       <span className="text-xs text-cyan-400 font-mono font-bold" data-testid="text-received-code">
                         {receivedFileInfo.shareCode}
                       </span>
@@ -1581,21 +1581,21 @@ export default function Home() {
                         <span className="text-sm font-medium">This file is password protected</span>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-zinc-400 text-xs uppercase tracking-wider">Enter Password</label>
+                        <label className="text-muted-foreground text-xs uppercase tracking-wider">Enter Password</label>
                         <div className="relative">
                           <Input
                             type={showReceivePassword ? "text" : "password"}
                             value={receivePassword}
                             onChange={(e) => setReceivePassword(e.target.value)}
                             placeholder="Enter file password"
-                            className="bg-zinc-800 border-zinc-700 text-white pr-10"
+                            className="bg-accent border-muted-foreground/30 text-foreground pr-10"
                             data-testid="input-receive-password"
                             onKeyDown={(e) => e.key === "Enter" && handleUnlockReceivedFile()}
                           />
                           <button
                             type="button"
                             onClick={() => setShowReceivePassword(!showReceivePassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                           >
                             {showReceivePassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
@@ -1622,10 +1622,10 @@ export default function Home() {
                   {(receiveDownloadStatus === "downloading" || receiveDownloadStatus === "complete") && receiveDownloadProgress !== null && (
                     <div className="space-y-2" data-testid="receive-download-progress">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-zinc-400 font-mono">
+                        <span className="text-muted-foreground font-mono">
                           {receiveDownloadStatus === "complete" ? "Complete" : "Downloading..."}
                         </span>
-                        <span className="text-white font-mono" data-testid="text-receive-percentage">{receiveDownloadProgress}%</span>
+                        <span className="text-foreground font-mono" data-testid="text-receive-percentage">{receiveDownloadProgress}%</span>
                       </div>
                       <Progress value={receiveDownloadProgress} className="h-2" data-testid="progress-receive" />
                     </div>
@@ -1650,7 +1650,7 @@ export default function Home() {
                       onClick={handleReceiveDownload}
                       disabled={receiveDownloadStatus === "downloading"}
                       data-testid="btn-receive-download"
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-mono uppercase tracking-wider"
+                      className="w-full bg-green-600 hover:bg-green-700 text-foreground font-mono uppercase tracking-wider"
                     >
                       {receiveDownloadStatus === "downloading" ? (
                         <><Loader2 size={14} className="mr-2 animate-spin" /> Downloading...</>
@@ -1678,10 +1678,10 @@ export default function Home() {
                     key="cloud-vis"
                     className="flex flex-col items-center gap-3"
                   >
-                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                      <Cloud size={36} className="text-zinc-700" />
+                    <div className="w-24 h-24 border border-border rounded-full flex items-center justify-center">
+                      <Cloud size={36} className="text-muted-foreground/60" />
                     </div>
-                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
+                    <h3 className="text-muted-foreground font-mono text-xs tracking-widest uppercase">Cloud Storage</h3>
                   </motion.div>
                 ) : (
                   <motion.div 
@@ -1690,10 +1690,10 @@ export default function Home() {
                     key="p2p-vis"
                     className="flex flex-col items-center gap-3"
                   >
-                    <div className="w-24 h-24 border border-zinc-800 rounded-full flex items-center justify-center">
-                      <Share2 size={36} className="text-zinc-700" />
+                    <div className="w-24 h-24 border border-border rounded-full flex items-center justify-center">
+                      <Share2 size={36} className="text-muted-foreground/60" />
                     </div>
-                    <h3 className="text-zinc-500 font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
+                    <h3 className="text-muted-foreground font-mono text-xs tracking-widest uppercase">P2P Direct</h3>
                   </motion.div>
                 )}
               </motion.div>
@@ -1704,7 +1704,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 bg-black z-20 transition-all duration-300 shrink-0">
+      <footer className="border-t border-border px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 bg-background z-20 transition-all duration-300 shrink-0">
         <div className="flex items-center gap-3">
           <AnimatePresence>
             {showLoginPrompt && (
@@ -1712,17 +1712,17 @@ export default function Home() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="bg-zinc-900/50 border border-zinc-800 px-3 py-2 flex items-center gap-2 max-w-xs"
+                className="bg-secondary/50 border border-border px-3 py-2 flex items-center gap-2 max-w-xs"
               >
-                <ArrowRight className="text-zinc-500" size={12} />
+                <ArrowRight className="text-muted-foreground" size={12} />
                 <div className="flex-1">
-                  <p className="text-[10px] text-zinc-400 leading-snug">
+                  <p className="text-[10px] text-muted-foreground leading-snug">
                     Sign in to track your file transfers.
                   </p>
                   <button 
                     onClick={() => setShowAuthModal(true)}
                     data-testid="btn-login-prompt" 
-                    className="text-[9px] font-bold uppercase tracking-wider text-white mt-0.5 hover:underline"
+                    className="text-[9px] font-bold uppercase tracking-wider text-foreground mt-0.5 hover:underline"
                   >
                     Login Now
                   </button>
@@ -1730,7 +1730,7 @@ export default function Home() {
                 <button 
                   onClick={() => setShowLoginPrompt(false)}
                   data-testid="btn-close-prompt"
-                  className="text-zinc-600 hover:text-white"
+                  className="text-muted-foreground/70 hover:text-foreground"
                 >
                   <X size={12} />
                 </button>
@@ -1739,17 +1739,17 @@ export default function Home() {
           </AnimatePresence>
         </div>
 
-        <div className="border border-zinc-900 bg-zinc-950 px-3 py-1.5 flex items-center gap-4 min-w-[160px]">
-          <Wifi size={12} className="text-zinc-600" />
+        <div className="border border-border bg-card px-3 py-1.5 flex items-center gap-4 min-w-[160px]">
+          <Wifi size={12} className="text-muted-foreground/70" />
           <div className="flex-1 flex justify-between items-center gap-3">
             <div className="flex flex-col">
-              <span className="text-[8px] text-zinc-600 font-mono uppercase">Down</span>
-              <span className="text-[10px] text-zinc-300 font-mono">{networkSpeed.down}</span>
+              <span className="text-[8px] text-muted-foreground/70 font-mono uppercase">Down</span>
+              <span className="text-[10px] text-foreground/80 font-mono">{networkSpeed.down}</span>
             </div>
-            <div className="h-5 w-px bg-zinc-900" />
+            <div className="h-5 w-px bg-secondary" />
             <div className="flex flex-col text-right">
-              <span className="text-[8px] text-zinc-600 font-mono uppercase">Up</span>
-              <span className="text-[10px] text-zinc-300 font-mono">{networkSpeed.up}</span>
+              <span className="text-[8px] text-muted-foreground/70 font-mono uppercase">Up</span>
+              <span className="text-[10px] text-foreground/80 font-mono">{networkSpeed.up}</span>
             </div>
           </div>
         </div>

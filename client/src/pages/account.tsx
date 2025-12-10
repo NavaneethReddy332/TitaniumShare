@@ -54,7 +54,7 @@ function NavItem({ id, icon: Icon, label, active, isHovered, onClick, onMouseEnt
       {isHovered && (
         <motion.div
           layoutId="account-nav-hover"
-          className="absolute inset-0 bg-zinc-800/60 rounded-md"
+          className="absolute inset-0 bg-accent/60 rounded-md"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -72,13 +72,13 @@ function NavItem({ id, icon: Icon, label, active, isHovered, onClick, onMouseEnt
         className={`
           relative z-10 w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-medium transition-colors duration-200 rounded-md
           ${active 
-            ? 'text-white' 
-            : 'text-zinc-500'
+            ? 'text-foreground' 
+            : 'text-muted-foreground'
           }
         `}
       >
-        <Icon size={16} className={active ? 'text-cyan-500' : isHovered ? 'text-zinc-300' : ''} />
-        <span className={isHovered && !active ? 'text-zinc-300' : ''}>{label}</span>
+        <Icon size={16} className={active ? 'text-cyan-500' : isHovered ? 'text-foreground/80' : ''} />
+        <span className={isHovered && !active ? 'text-foreground/80' : ''}>{label}</span>
         {active && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-cyan-500 rounded-full" />}
       </button>
     </div>
@@ -97,15 +97,15 @@ interface UsageCardProps {
 
 function UsageCard({ title, percentage, used, total, status, color = 'cyan', testId }: UsageCardProps) {
   return (
-    <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 transition-colors hover:border-zinc-700" data-testid={testId}>
+    <div className="bg-card border border-border rounded-md p-5 transition-colors hover:border-muted-foreground/30" data-testid={testId}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
-        <span className="text-[10px] text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <span className="text-[10px] text-muted-foreground border border-muted-foreground/30 px-2 py-0.5 rounded-full">
           {status || `${percentage}%`}
         </span>
       </div>
       <div className="space-y-2">
-        <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-1 bg-accent rounded-full overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${percentage}%` }}
@@ -117,7 +117,7 @@ function UsageCard({ title, percentage, used, total, status, color = 'cyan', tes
             }`}
           />
         </div>
-        <div className="flex justify-between text-[11px] text-zinc-500">
+        <div className="flex justify-between text-[11px] text-muted-foreground">
           <span>{used}</span>
           <span>{total}</span>
         </div>
@@ -136,18 +136,18 @@ interface ActivityItemRowProps {
 
 function ActivityItemRow({ icon: Icon, title, subtitle, status, testId }: ActivityItemRowProps) {
   return (
-    <div className="flex items-center justify-between py-4 border-b border-zinc-800 last:border-b-0" data-testid={testId}>
+    <div className="flex items-center justify-between py-4 border-b border-border last:border-b-0" data-testid={testId}>
       <div className="flex items-center gap-4">
-        <div className="w-9 h-9 bg-zinc-900 rounded-md flex items-center justify-center">
-          <Icon size={16} className="text-zinc-500" />
+        <div className="w-9 h-9 bg-secondary rounded-md flex items-center justify-center">
+          <Icon size={16} className="text-muted-foreground" />
         </div>
         <div>
-          <h4 className="text-sm font-medium text-white truncate max-w-[200px]">{title}</h4>
-          <p className="text-[11px] text-zinc-500 mt-0.5">{subtitle}</p>
+          <h4 className="text-sm font-medium text-foreground truncate max-w-[200px]">{title}</h4>
+          <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>
         </div>
       </div>
       {status && (
-        <span className="text-[11px] text-zinc-600">{status}</span>
+        <span className="text-[11px] text-muted-foreground/70">{status}</span>
       )}
     </div>
   );
@@ -305,8 +305,8 @@ function OverviewTab() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-xl font-semibold text-white mb-1">Dashboard</h1>
-      <p className="text-xs text-zinc-500 mb-8">Welcome back, {user?.username || user?.email?.split('@')[0] || 'User'}.</p>
+      <h1 className="text-xl font-semibold text-foreground mb-1">Dashboard</h1>
+      <p className="text-xs text-muted-foreground mb-8">Welcome back, {user?.username || user?.email?.split('@')[0] || 'User'}.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
         <UsageCard 
@@ -329,10 +329,10 @@ function OverviewTab() {
 
       <div className="flex flex-row gap-5">
         {/* History Panel - Fixed width, no shrinking when file details appear */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 flex-1 min-w-0 xl:min-w-[500px] xl:shrink-0" data-testid="card-history">
+        <div className="bg-card border border-border rounded-md p-5 flex-1 min-w-0 xl:min-w-[500px] xl:shrink-0" data-testid="card-history">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-white">History</h3>
-            <span className="text-[10px] text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full flex items-center gap-1" data-testid="badge-live">
+            <h3 className="text-sm font-semibold text-foreground">History</h3>
+            <span className="text-[10px] text-muted-foreground border border-muted-foreground/30 px-2 py-0.5 rounded-full flex items-center gap-1" data-testid="badge-live">
               <span className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
               Live
             </span>
@@ -340,7 +340,7 @@ function OverviewTab() {
           
           {filesLoading ? (
             <div className="text-center py-8">
-              <Loader2 size={24} className="text-zinc-500 mx-auto animate-spin" />
+              <Loader2 size={24} className="text-muted-foreground mx-auto animate-spin" />
             </div>
           ) : uploadedFiles.length > 0 ? (
             <div 
@@ -358,7 +358,7 @@ function OverviewTab() {
                       layoutId="file-list-hover-bg"
                       className={`absolute inset-0 rounded-md ${
                         file.existsInStorage 
-                          ? 'bg-zinc-800/60' 
+                          ? 'bg-accent/60' 
                           : 'bg-red-900/20'
                       }`}
                       initial={{ opacity: 0 }}
@@ -376,14 +376,14 @@ function OverviewTab() {
                   <div
                     data-testid={`uploaded-file-${file.id}`}
                     onClick={() => handleFileClick(file)}
-                    className={`relative z-10 bg-zinc-900/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
+                    className={`relative z-10 bg-secondary/50 border p-3 flex items-center gap-3 cursor-pointer transition-all duration-200 rounded-md ${
                       file.existsInStorage 
-                        ? 'border-zinc-800' 
+                        ? 'border-border' 
                         : 'border-red-900/50'
-                    } ${hoveredFileId === file.id ? (file.existsInStorage ? 'border-zinc-600' : 'border-red-700/50') : ''} ${selectedFile?.id === file.id ? 'ring-1 ring-cyan-500 border-cyan-500' : ''}`}
+                    } ${hoveredFileId === file.id ? (file.existsInStorage ? 'border-muted-foreground/50' : 'border-red-700/50') : ''} ${selectedFile?.id === file.id ? 'ring-1 ring-cyan-500 border-cyan-500' : ''}`}
                   >
                     {file.existsInStorage ? (
-                      <FileIcon size={16} className={`shrink-0 transition-colors ${hoveredFileId === file.id ? 'text-zinc-300' : 'text-zinc-500'}`} />
+                      <FileIcon size={16} className={`shrink-0 transition-colors ${hoveredFileId === file.id ? 'text-foreground/80' : 'text-muted-foreground'}`} />
                     ) : (
                       <AlertTriangle size={16} className="text-red-500 shrink-0" />
                     )}
@@ -392,13 +392,13 @@ function OverviewTab() {
                       <div className="flex items-center gap-2">
                         <p className={`text-xs truncate transition-colors ${
                           file.existsInStorage 
-                            ? (hoveredFileId === file.id ? 'text-white' : 'text-zinc-300')
+                            ? (hoveredFileId === file.id ? 'text-foreground' : 'text-foreground/80')
                             : 'text-red-400'
                         }`}>
                           {file.originalName}
                         </p>
                       </div>
-                      <p className={`text-[10px] transition-colors ${hoveredFileId === file.id ? 'text-zinc-500' : 'text-zinc-600'}`}>
+                      <p className={`text-[10px] transition-colors ${hoveredFileId === file.id ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
                         {file.existsInStorage ? `${file.sizeFormatted} - ${formatTimeAgo(file.createdAt)}` : 'File no longer exists in storage'}
                       </p>
                     </div>
@@ -408,7 +408,7 @@ function OverviewTab() {
                         <>
                           <button
                             onClick={(e) => { e.stopPropagation(); copyShareCode(file.shareCode); }}
-                            className="flex items-center gap-1 px-2 py-1 bg-zinc-800 text-[10px] font-mono hover:bg-zinc-700 transition-colors rounded-sm"
+                            className="flex items-center gap-1 px-2 py-1 bg-accent text-[10px] font-mono hover:bg-accent transition-colors rounded-sm"
                             data-testid={`copy-code-${file.id}`}
                           >
                             {copiedCode === file.shareCode ? (
@@ -419,7 +419,7 @@ function OverviewTab() {
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); downloadMutation.mutate(file.shareCode); }}
-                            className="p-1 text-zinc-500 hover:text-white transition-colors"
+                            className="p-1 text-muted-foreground hover:text-foreground transition-colors"
                             data-testid={`download-${file.id}`}
                           >
                             <Download size={14} />
@@ -428,7 +428,7 @@ function OverviewTab() {
                       )}
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(file.id); }}
-                        className="p-1 text-zinc-500 hover:text-red-500 transition-colors"
+                        className="p-1 text-muted-foreground hover:text-red-500 transition-colors"
                         data-testid={`delete-${file.id}`}
                       >
                         <Trash2 size={14} />
@@ -440,9 +440,9 @@ function OverviewTab() {
             </div>
           ) : (
             <div className="text-center py-8">
-              <FileIcon size={32} className="text-zinc-700 mx-auto mb-3" />
-              <p className="text-sm text-zinc-500">No files uploaded yet</p>
-              <p className="text-[11px] text-zinc-600 mt-1">Your uploaded files will appear here</p>
+              <FileIcon size={32} className="text-muted-foreground/60 mx-auto mb-3" />
+              <p className="text-sm text-muted-foreground">No files uploaded yet</p>
+              <p className="text-[11px] text-muted-foreground/70 mt-1">Your uploaded files will appear here</p>
             </div>
           )}
         </div>
@@ -454,14 +454,14 @@ function OverviewTab() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="hidden xl:block bg-zinc-950 border border-zinc-800 rounded-md p-5 w-[420px] shrink-0"
+              className="hidden xl:block bg-card border border-border rounded-md p-5 w-[420px] shrink-0"
               data-testid="file-details-panel"
             >
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-white">File Details</h3>
+                <h3 className="text-sm font-semibold text-foreground">File Details</h3>
                 <button
                   onClick={() => setSelectedFile(null)}
-                  className="text-zinc-500 hover:text-white transition-colors p-1"
+                  className="text-muted-foreground hover:text-foreground transition-colors p-1"
                   data-testid="btn-close-details"
                 >
                   <X size={16} />
@@ -470,20 +470,20 @@ function OverviewTab() {
 
               <div className="space-y-4">
                 {/* File Name */}
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Name</div>
+                <div className="bg-secondary/50 border border-border rounded-md p-4">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">File Name</div>
                   <div className="flex items-center gap-2">
                     <FileIcon size={16} className="text-cyan-500 shrink-0" />
-                    <p className="text-white text-sm font-medium truncate" data-testid="text-detail-filename">
+                    <p className="text-foreground text-sm font-medium truncate" data-testid="text-detail-filename">
                       {selectedFile.originalName}
                     </p>
                   </div>
-                  <p className="text-[10px] text-zinc-500 mt-1">{selectedFile.sizeFormatted}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">{selectedFile.sizeFormatted}</p>
                 </div>
 
                 {/* Share Code */}
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Share Code</div>
+                <div className="bg-secondary/50 border border-border rounded-md p-4">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">Share Code</div>
                   <div className="flex items-center gap-3">
                     <span className="text-2xl font-mono font-bold text-cyan-400 tracking-widest" data-testid="text-detail-code">
                       {selectedFile.shareCode}
@@ -501,21 +501,21 @@ function OverviewTab() {
                 </div>
 
                 {/* Stats */}
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Statistics</div>
+                <div className="bg-secondary/50 border border-border rounded-md p-4">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">Statistics</div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-zinc-400">Downloads</span>
-                    <span className="text-sm text-white font-medium" data-testid="text-detail-downloads">{selectedFile.downloadCount}</span>
+                    <span className="text-xs text-muted-foreground">Downloads</span>
+                    <span className="text-sm text-foreground font-medium" data-testid="text-detail-downloads">{selectedFile.downloadCount}</span>
                   </div>
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-zinc-400">Uploaded</span>
-                    <span className="text-sm text-white font-medium">{formatTimeAgo(selectedFile.createdAt)}</span>
+                    <span className="text-xs text-muted-foreground">Uploaded</span>
+                    <span className="text-sm text-foreground font-medium">{formatTimeAgo(selectedFile.createdAt)}</span>
                   </div>
                 </div>
 
                 {/* QR Code */}
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4 flex flex-col items-center">
-                  <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-3 self-start">QR Code</div>
+                <div className="bg-secondary/50 border border-border rounded-md p-4 flex flex-col items-center">
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-3 self-start">QR Code</div>
                   <div className="bg-white p-3 rounded-md">
                     <QRCodeSVG 
                       value={getDownloadUrl(selectedFile.shareCode)} 
@@ -523,7 +523,7 @@ function OverviewTab() {
                       level="M"
                     />
                   </div>
-                  <p className="text-[9px] text-zinc-600 mt-2">Scan to download</p>
+                  <p className="text-[9px] text-muted-foreground/70 mt-2">Scan to download</p>
                 </div>
 
                 {/* Actions */}
@@ -564,26 +564,26 @@ function OverviewTab() {
       {/* Mobile/Tablet Modal for File Details - Only render on non-xl screens */}
       {!isXlScreen && (
         <Dialog open={selectedFile !== null} onOpenChange={(open) => !open && setSelectedFile(null)}>
-          <DialogContent className="bg-zinc-950 border-zinc-800 max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
           {selectedFile && (
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-white">File Details</h3>
+              <h3 className="text-lg font-semibold text-foreground">File Details</h3>
               
               {/* File Name */}
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Name</div>
+              <div className="bg-secondary/50 border border-border rounded-md p-4">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">File Name</div>
                 <div className="flex items-center gap-2">
                   <FileIcon size={16} className="text-cyan-500 shrink-0" />
-                  <p className="text-white text-sm font-medium truncate">
+                  <p className="text-foreground text-sm font-medium truncate">
                     {selectedFile.originalName}
                   </p>
                 </div>
-                <p className="text-[10px] text-zinc-500 mt-1">{selectedFile.sizeFormatted}</p>
+                <p className="text-[10px] text-muted-foreground mt-1">{selectedFile.sizeFormatted}</p>
               </div>
 
               {/* Share Code */}
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Share Code</div>
+              <div className="bg-secondary/50 border border-border rounded-md p-4">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">Share Code</div>
                 <div className="flex items-center gap-3">
                   <span className="text-2xl font-mono font-bold text-cyan-400 tracking-widest">
                     {selectedFile.shareCode}
@@ -600,21 +600,21 @@ function OverviewTab() {
               </div>
 
               {/* Stats */}
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">Statistics</div>
+              <div className="bg-secondary/50 border border-border rounded-md p-4">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-2">Statistics</div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-zinc-400">Downloads</span>
-                  <span className="text-sm text-white font-medium">{selectedFile.downloadCount}</span>
+                  <span className="text-xs text-muted-foreground">Downloads</span>
+                  <span className="text-sm text-foreground font-medium">{selectedFile.downloadCount}</span>
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-zinc-400">Uploaded</span>
-                  <span className="text-sm text-white font-medium">{formatTimeAgo(selectedFile.createdAt)}</span>
+                  <span className="text-xs text-muted-foreground">Uploaded</span>
+                  <span className="text-sm text-foreground font-medium">{formatTimeAgo(selectedFile.createdAt)}</span>
                 </div>
               </div>
 
               {/* QR Code */}
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4 flex flex-col items-center">
-                <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-3 self-start">QR Code</div>
+              <div className="bg-secondary/50 border border-border rounded-md p-4 flex flex-col items-center">
+                <div className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mb-3 self-start">QR Code</div>
                 <div className="bg-white p-3 rounded-md">
                   <QRCodeSVG 
                     value={getDownloadUrl(selectedFile.shareCode)} 
@@ -622,7 +622,7 @@ function OverviewTab() {
                     level="M"
                   />
                 </div>
-                <p className="text-[9px] text-zinc-600 mt-2">Scan to download</p>
+                <p className="text-[9px] text-muted-foreground/70 mt-2">Scan to download</p>
               </div>
 
               {/* Actions */}
@@ -690,45 +690,45 @@ function AccountTab() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-xl font-semibold text-white mb-1">Account</h1>
-      <p className="text-xs text-zinc-500 mb-8">Manage your account settings.</p>
+      <h1 className="text-xl font-semibold text-foreground mb-1">Account</h1>
+      <p className="text-xs text-muted-foreground mb-8">Manage your account settings.</p>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Profile Information</h3>
+      <div className="bg-card border border-border rounded-md p-5 mb-5">
+        <h3 className="text-sm font-semibold text-foreground mb-5">Profile Information</h3>
         
         <div className="flex items-center gap-4 mb-6">
           <Avatar className="h-16 w-16">
             <AvatarImage src={user?.profileImageUrl || undefined} />
-            <AvatarFallback className="bg-zinc-800 text-zinc-300 text-lg">
+            <AvatarFallback className="bg-accent text-foreground/80 text-lg">
               {user?.username?.[0] || user?.email?.[0] || 'U'}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h4 className="text-sm font-medium text-white">{user?.username || 'User'}</h4>
-            <p className="text-xs text-zinc-500">{user?.email}</p>
+            <h4 className="text-sm font-medium text-foreground">{user?.username || 'User'}</h4>
+            <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div>
-            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+            <label className="block text-[11px] text-muted-foreground uppercase tracking-wider mb-2 font-semibold">
               Display Name
             </label>
             <Input 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               data-testid="input-display-name"
-              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+              className="bg-background border-border text-foreground h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+            <label className="block text-[11px] text-muted-foreground uppercase tracking-wider mb-2 font-semibold">
               Email Address
             </label>
             <Input 
               defaultValue={user?.email || ''}
               data-testid="input-email"
-              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+              className="bg-background border-border text-foreground h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
               disabled
             />
           </div>
@@ -750,22 +750,22 @@ function AccountTab() {
         </div>
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Preferences</h3>
+      <div className="bg-card border border-border rounded-md p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-5">Preferences</h3>
         
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm text-white">Email Notifications</h4>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Receive transfer alerts via email</p>
+              <h4 className="text-sm text-foreground">Email Notifications</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Receive transfer alerts via email</p>
             </div>
             <Switch data-testid="switch-email-notifications" />
           </div>
-          <Separator className="bg-zinc-800" />
+          <Separator className="bg-accent" />
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm text-white">Auto-delete Files</h4>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Delete files after 7 days</p>
+              <h4 className="text-sm text-foreground">Auto-delete Files</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Delete files after 7 days</p>
             </div>
             <Switch data-testid="switch-auto-delete" />
           </div>
@@ -820,40 +820,40 @@ function SecurityTab() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-xl font-semibold text-white mb-1">Security</h1>
-      <p className="text-xs text-zinc-500 mb-8">Manage your security settings.</p>
+      <h1 className="text-xl font-semibold text-foreground mb-1">Security</h1>
+      <p className="text-xs text-muted-foreground mb-8">Manage your security settings.</p>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Account Information</h3>
+      <div className="bg-card border border-border rounded-md p-5 mb-5">
+        <h3 className="text-sm font-semibold text-foreground mb-5">Account Information</h3>
         
         <div className="space-y-4">
-          <div className="flex items-center justify-between py-3 border-b border-zinc-800">
+          <div className="flex items-center justify-between py-3 border-b border-border">
             <div>
-              <h4 className="text-sm text-white">Login Method</h4>
-              <p className="text-[11px] text-zinc-500 mt-0.5">How you sign in to your account</p>
+              <h4 className="text-sm text-foreground">Login Method</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">How you sign in to your account</p>
             </div>
-            <span className="text-xs text-zinc-400 bg-zinc-900 px-3 py-1 rounded-full capitalize">
+            <span className="text-xs text-muted-foreground bg-secondary px-3 py-1 rounded-full capitalize">
               {user?.provider || 'Local'}
             </span>
           </div>
           <div className="flex items-center justify-between py-3">
             <div>
-              <h4 className="text-sm text-white">Account Created</h4>
-              <p className="text-[11px] text-zinc-500 mt-0.5">When you joined Titanium</p>
+              <h4 className="text-sm text-foreground">Account Created</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">When you joined Titanium</p>
             </div>
-            <span className="text-xs text-zinc-400">
+            <span className="text-xs text-muted-foreground">
               {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Change Password</h3>
+      <div className="bg-card border border-border rounded-md p-5 mb-5">
+        <h3 className="text-sm font-semibold text-foreground mb-5">Change Password</h3>
         
         <div className="space-y-4">
           <div>
-            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+            <label className="block text-[11px] text-muted-foreground uppercase tracking-wider mb-2 font-semibold">
               Current Password
             </label>
             <Input 
@@ -862,11 +862,11 @@ function SecurityTab() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               placeholder="Enter current password"
               data-testid="input-current-password"
-              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+              className="bg-background border-border text-foreground h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+            <label className="block text-[11px] text-muted-foreground uppercase tracking-wider mb-2 font-semibold">
               New Password
             </label>
             <Input 
@@ -875,11 +875,11 @@ function SecurityTab() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="Enter new password"
               data-testid="input-new-password"
-              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+              className="bg-background border-border text-foreground h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
             />
           </div>
           <div>
-            <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+            <label className="block text-[11px] text-muted-foreground uppercase tracking-wider mb-2 font-semibold">
               Confirm New Password
             </label>
             <Input 
@@ -888,7 +888,7 @@ function SecurityTab() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               data-testid="input-confirm-password"
-              className="bg-black border-zinc-800 text-white h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
+              className="bg-background border-border text-foreground h-10 focus-visible:ring-0 focus-visible:border-cyan-500"
             />
           </div>
           <div className="pt-2">
@@ -908,30 +908,30 @@ function SecurityTab() {
         </div>
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Current Session</h3>
+      <div className="bg-card border border-border rounded-md p-5 mb-5">
+        <h3 className="text-sm font-semibold text-foreground mb-5">Current Session</h3>
         
         <div className="flex items-center justify-between py-4">
           <div className="flex items-center gap-4">
-            <div className="w-9 h-9 bg-zinc-900 rounded-md flex items-center justify-center">
-              <Settings size={16} className="text-zinc-500" />
+            <div className="w-9 h-9 bg-secondary rounded-md flex items-center justify-center">
+              <Settings size={16} className="text-muted-foreground" />
             </div>
             <div>
-              <h4 className="text-sm font-medium text-white">This Browser</h4>
-              <p className="text-[11px] text-zinc-500 mt-0.5">Currently active session</p>
+              <h4 className="text-sm font-medium text-foreground">This Browser</h4>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Currently active session</p>
             </div>
           </div>
           <div className="w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
         </div>
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Two-Factor Authentication</h3>
+      <div className="bg-card border border-border rounded-md p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-5">Two-Factor Authentication</h3>
         
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm text-white">Enable 2FA</h4>
-            <p className="text-[11px] text-zinc-500 mt-0.5">Coming soon</p>
+            <h4 className="text-sm text-foreground">Enable 2FA</h4>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Coming soon</p>
           </div>
           <Switch data-testid="switch-2fa" disabled />
         </div>
@@ -947,24 +947,24 @@ function BillingTab() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-xl font-semibold text-white mb-1">Billing</h1>
-      <p className="text-xs text-zinc-500 mb-8">Manage your subscription and payments.</p>
+      <h1 className="text-xl font-semibold text-foreground mb-1">Billing</h1>
+      <p className="text-xs text-muted-foreground mb-8">Manage your subscription and payments.</p>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 mb-5">
+      <div className="bg-card border border-border rounded-md p-5 mb-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-white">Current Plan</h3>
+          <h3 className="text-sm font-semibold text-foreground">Current Plan</h3>
           <span className="text-[10px] bg-cyan-500/10 text-cyan-500 border border-cyan-500/30 px-2 py-0.5 rounded-full">
             Free Tier
           </span>
         </div>
         
-        <div className="bg-black border border-zinc-800 rounded-md p-4 mb-4">
+        <div className="bg-background border border-border rounded-md p-4 mb-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-lg font-semibold text-white">Free</h4>
-              <p className="text-xs text-zinc-500">1GB Storage - 100 API calls/month</p>
+              <h4 className="text-lg font-semibold text-foreground">Free</h4>
+              <p className="text-xs text-muted-foreground">1GB Storage - 100 API calls/month</p>
             </div>
-            <span className="text-2xl font-bold text-white">$0<span className="text-sm text-zinc-500">/mo</span></span>
+            <span className="text-2xl font-bold text-foreground">$0<span className="text-sm text-muted-foreground">/mo</span></span>
           </div>
         </div>
 
@@ -976,13 +976,13 @@ function BillingTab() {
         </Button>
       </div>
 
-      <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5">
-        <h3 className="text-sm font-semibold text-white mb-5">Payment History</h3>
+      <div className="bg-card border border-border rounded-md p-5">
+        <h3 className="text-sm font-semibold text-foreground mb-5">Payment History</h3>
         
         <div className="text-center py-8">
-          <FileText size={32} className="text-zinc-700 mx-auto mb-3" />
-          <p className="text-sm text-zinc-500">No payment history</p>
-          <p className="text-[11px] text-zinc-600 mt-1">Invoices will appear here once you upgrade</p>
+          <FileText size={32} className="text-muted-foreground/60 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">No payment history</p>
+          <p className="text-[11px] text-muted-foreground/70 mt-1">Invoices will appear here once you upgrade</p>
         </div>
       </div>
     </motion.div>
@@ -1021,23 +1021,23 @@ function DangerZoneTab() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="text-xl font-semibold text-white mb-1">Danger Zone</h1>
-      <p className="text-xs text-zinc-500 mb-8">Irreversible and destructive actions.</p>
+      <h1 className="text-xl font-semibold text-foreground mb-1">Danger Zone</h1>
+      <p className="text-xs text-muted-foreground mb-8">Irreversible and destructive actions.</p>
 
-      <div className="bg-zinc-950 border border-red-900/50 rounded-md p-5">
+      <div className="bg-card border border-red-900/50 rounded-md p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 bg-red-500/10 rounded-md flex items-center justify-center">
             <AlertTriangle size={20} className="text-red-500" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Delete Account</h3>
-            <p className="text-[11px] text-zinc-500">Permanently delete your account and all data</p>
+            <h3 className="text-sm font-semibold text-foreground">Delete Account</h3>
+            <p className="text-[11px] text-muted-foreground">Permanently delete your account and all data</p>
           </div>
         </div>
 
         <div className="bg-red-500/5 border border-red-900/30 rounded-md p-4 mb-5">
           <h4 className="text-xs font-semibold text-red-400 mb-2 uppercase tracking-wider">Warning</h4>
-          <ul className="text-xs text-zinc-400 space-y-1">
+          <ul className="text-xs text-muted-foreground space-y-1">
             <li>All your files will be permanently deleted</li>
             <li>Your account data will be erased</li>
             <li>You will NOT be able to create a new account with this email for 5 days</li>
@@ -1057,7 +1057,7 @@ function DangerZoneTab() {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="block text-[11px] text-zinc-500 uppercase tracking-wider mb-2 font-semibold">
+              <label className="block text-[11px] text-muted-foreground uppercase tracking-wider mb-2 font-semibold">
                 Type your email to confirm: <span className="text-red-400">{user?.email}</span>
               </label>
               <Input 
@@ -1065,7 +1065,7 @@ function DangerZoneTab() {
                 onChange={(e) => setConfirmEmail(e.target.value)}
                 placeholder="Enter your email"
                 data-testid="input-confirm-delete-email"
-                className="bg-black border-red-900/50 text-white h-10 focus-visible:ring-0 focus-visible:border-red-500"
+                className="bg-background border-red-900/50 text-foreground h-10 focus-visible:ring-0 focus-visible:border-red-500"
               />
             </div>
             <div className="flex gap-3">
@@ -1133,7 +1133,7 @@ export default function Account() {
   };
 
   return (
-    <div className="h-screen bg-black text-white font-mono flex flex-col overflow-hidden">
+    <div className="h-screen bg-background text-foreground font-mono flex flex-col overflow-hidden">
       {/* Ambient Background */}
       <div className="fixed inset-0 pointer-events-none z-0">
         <div 
@@ -1154,8 +1154,8 @@ export default function Account() {
       `}</style>
 
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-900 shrink-0 z-10 bg-black/80 backdrop-blur-sm">
-        <Link href="/" className="flex items-center gap-3 text-zinc-500 hover:text-white transition-colors">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0 z-10 bg-background/80 backdrop-blur-sm">
+        <Link href="/" className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors">
           <ChevronRight size={16} className="rotate-180" />
           <span className="text-xs uppercase tracking-wider">Back to Titanium</span>
         </Link>
@@ -1163,13 +1163,13 @@ export default function Account() {
         <div className="flex items-center gap-3">
           {user && (
             <>
-              <span className="text-xs text-zinc-500">{user.email}</span>
+              <span className="text-xs text-muted-foreground">{user.email}</span>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={() => logout()}
                 data-testid="btn-logout"
-                className="text-zinc-400 hover:text-red-500 hover:bg-red-500/10"
+                className="text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
               >
                 <LogOut size={14} />
               </Button>
@@ -1181,7 +1181,7 @@ export default function Account() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar Navigation */}
-        <aside className="w-60 border-r border-zinc-900 p-4 flex flex-col bg-black/60 backdrop-blur-md shrink-0">
+        <aside className="w-60 border-r border-border p-4 flex flex-col bg-background/60 backdrop-blur-md shrink-0">
           <nav className="flex flex-col gap-1 flex-1 mt-4" onMouseLeave={() => setHoveredNavItem(null)}>
             <AnimatePresence>
               {navItems.map((item) => (
@@ -1200,17 +1200,17 @@ export default function Account() {
           </nav>
 
           {/* User Profile */}
-          <div className="mt-auto pt-4 border-t border-zinc-800">
+          <div className="mt-auto pt-4 border-t border-border">
             <div className="flex items-center gap-3 px-4">
               <Avatar className="h-8 w-8">
                 <AvatarImage src={user?.profileImageUrl || undefined} />
-                <AvatarFallback className="bg-zinc-800 text-zinc-300 text-xs">
+                <AvatarFallback className="bg-accent text-foreground/80 text-xs">
                   {user?.username?.[0] || user?.email?.[0] || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-xs font-medium text-white">{user?.username || 'User'}</p>
-                <p className="text-[10px] text-zinc-600">Free Plan</p>
+                <p className="text-xs font-medium text-foreground">{user?.username || 'User'}</p>
+                <p className="text-[10px] text-muted-foreground/70">Free Plan</p>
               </div>
             </div>
           </div>
@@ -1235,25 +1235,25 @@ export default function Account() {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-900 px-6 py-3 flex items-center justify-between bg-black shrink-0 z-10">
-        <div className="flex items-center gap-2 text-[9px] text-zinc-600 font-mono uppercase tracking-widest">
+      <footer className="border-t border-border px-6 py-3 flex items-center justify-between bg-background shrink-0 z-10">
+        <div className="flex items-center gap-2 text-[9px] text-muted-foreground/70 font-mono uppercase tracking-widest">
           <span>Powered by</span>
-          <span className="text-white font-bold flex items-center gap-1">
+          <span className="text-foreground font-bold flex items-center gap-1">
             <div className="w-1.5 h-1.5 bg-white rounded-sm" /> REPLIT
           </span>
         </div>
 
-        <div className="border border-zinc-900 bg-zinc-950 px-3 py-1.5 flex items-center gap-4 min-w-[160px]">
-          <Wifi size={12} className="text-zinc-600" />
+        <div className="border border-border bg-card px-3 py-1.5 flex items-center gap-4 min-w-[160px]">
+          <Wifi size={12} className="text-muted-foreground/70" />
           <div className="flex-1 flex justify-between items-center gap-3">
             <div className="flex flex-col">
-              <span className="text-[8px] text-zinc-600 font-mono uppercase">Down</span>
-              <span className="text-[10px] text-zinc-300 font-mono">80.7 Mbps</span>
+              <span className="text-[8px] text-muted-foreground/70 font-mono uppercase">Down</span>
+              <span className="text-[10px] text-foreground/80 font-mono">80.7 Mbps</span>
             </div>
-            <div className="h-5 w-px bg-zinc-900" />
+            <div className="h-5 w-px bg-secondary" />
             <div className="flex flex-col text-right">
-              <span className="text-[8px] text-zinc-600 font-mono uppercase">Up</span>
-              <span className="text-[10px] text-zinc-300 font-mono">38.3 Mbps</span>
+              <span className="text-[8px] text-muted-foreground/70 font-mono uppercase">Up</span>
+              <span className="text-[10px] text-foreground/80 font-mono">38.3 Mbps</span>
             </div>
           </div>
         </div>

@@ -121,7 +121,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[400px] bg-zinc-950 border-zinc-800 text-white overflow-hidden">
+      <DialogContent className="sm:max-w-[400px] overflow-hidden">
         <DialogHeader>
           <AnimatePresence mode="wait">
             <motion.div
@@ -134,7 +134,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               <DialogTitle className="text-xl font-mono tracking-wider text-center">
                 {tab === "login" ? "WELCOME BACK" : "CREATE ACCOUNT"}
               </DialogTitle>
-              <DialogDescription className="text-center text-zinc-500 text-xs mt-1">
+              <DialogDescription className="text-center text-muted-foreground text-xs mt-1">
                 {tab === "login" ? "Sign in to your account" : "Create a new account to get started"}
               </DialogDescription>
             </motion.div>
@@ -142,13 +142,13 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
         </DialogHeader>
 
         <div className="w-full">
-          <div className="w-full bg-zinc-900 border border-zinc-800 p-1 flex">
+          <div className="w-full bg-secondary border border-border p-1 flex">
             <button
               type="button"
               data-testid="tab-login"
               onClick={() => setTab("login")}
               className={`flex-1 py-2 font-mono text-xs uppercase tracking-wider transition-colors ${
-                tab === "login" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-300"
+                tab === "login" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground/80"
               }`}
             >
               Login
@@ -158,7 +158,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               data-testid="tab-signup"
               onClick={() => setTab("signup")}
               className={`flex-1 py-2 font-mono text-xs uppercase tracking-wider transition-colors ${
-                tab === "signup" ? "bg-zinc-800 text-white" : "text-zinc-400 hover:text-zinc-300"
+                tab === "signup" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground/80"
               }`}
             >
               Sign Up
@@ -182,13 +182,12 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                     className="overflow-hidden"
                   >
                     <div className="space-y-2 pb-4">
-                      <Label htmlFor="username" className="text-xs text-zinc-400 uppercase tracking-wider">Username</Label>
+                      <Label htmlFor="username" className="text-xs text-muted-foreground uppercase tracking-wider">Username</Label>
                       <Input
                         id="username"
                         data-testid="input-username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
                         placeholder="Choose a username"
                       />
                     </div>
@@ -197,28 +196,26 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               </AnimatePresence>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs text-zinc-400 uppercase tracking-wider">Email</Label>
+                <Label htmlFor="email" className="text-xs text-muted-foreground uppercase tracking-wider">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   data-testid="input-email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
                   placeholder="you@example.com"
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-xs text-zinc-400 uppercase tracking-wider">Password</Label>
+                <Label htmlFor="password" className="text-xs text-muted-foreground uppercase tracking-wider">Password</Label>
                 <Input
                   id="password"
                   type="password"
                   data-testid="input-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="bg-zinc-900 border-zinc-800 text-white placeholder:text-zinc-600"
                   placeholder={tab === "signup" ? "Min 6 characters" : "Enter password"}
                   required
                   minLength={tab === "signup" ? 6 : undefined}
@@ -228,7 +225,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
               <Button 
                 type="submit" 
                 data-testid="btn-submit-auth"
-                className="w-full bg-white text-black hover:bg-zinc-200 font-mono text-xs uppercase tracking-widest"
+                className="w-full font-mono text-xs uppercase tracking-widest"
                 disabled={isLoading}
               >
                 {isLoading ? "Loading..." : (tab === "login" ? "Login" : "Create Account")}
@@ -237,8 +234,8 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
 
             <div className="mt-4">
               <div className="relative">
-                <Separator className="bg-zinc-800" />
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-950 px-2 text-[10px] text-zinc-500 uppercase tracking-widest">
+                <Separator />
+                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-popover px-2 text-[10px] text-muted-foreground uppercase tracking-widest">
                   or
                 </span>
               </div>
@@ -248,7 +245,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
                 variant="outline"
                 data-testid="btn-google"
                 onClick={handleGoogleLogin}
-                className="w-full mt-4 bg-transparent border-zinc-800 text-white hover:bg-zinc-900 font-mono text-xs uppercase tracking-wider"
+                className="w-full mt-4 font-mono text-xs uppercase tracking-wider"
               >
                 <FcGoogle className="w-5 h-5 mr-2" />
                 Continue with Google

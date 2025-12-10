@@ -128,15 +128,15 @@
 /* Custom Utilities for the Aero Design */
 @layer utilities {
   .glass-panel {
-    @apply bg-zinc-950/80 backdrop-blur-md border border-zinc-800;
+    @apply bg-card/80 backdrop-blur-md border border-border;
   }
   
   .tech-border {
-    @apply border border-zinc-800 transition-colors duration-200;
+    @apply border border-border transition-colors duration-200;
   }
   
   .tech-border:hover {
-    @apply border-zinc-600;
+    @apply border-muted-foreground/50;
   }
   
   /* Sidebar - Always visible with icons, expand on hover to show labels */

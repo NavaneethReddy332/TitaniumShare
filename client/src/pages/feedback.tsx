@@ -51,26 +51,26 @@ export default function FeedbackPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg bg-zinc-900 border-zinc-800">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-lg">
         <CardHeader>
           <div className="flex items-center gap-2 mb-2">
             <Link href="/">
-              <Button variant="ghost" size="icon" className="text-zinc-400" data-testid="button-back">
+              <Button variant="ghost" size="icon" className="text-muted-foreground" data-testid="button-back">
                 <ArrowLeft size={18} />
               </Button>
             </Link>
-            <MessageSquare className="text-zinc-400" size={20} />
-            <CardTitle className="text-white text-lg">Send Feedback</CardTitle>
+            <MessageSquare className="text-muted-foreground" size={20} />
+            <CardTitle className="text-foreground text-lg">Send Feedback</CardTitle>
           </div>
-          <p className="text-zinc-500 text-sm">We'd love to hear from you. Share your thoughts, suggestions, or report issues.</p>
+          <p className="text-muted-foreground text-sm">We'd love to hear from you. Share your thoughts, suggestions, or report issues.</p>
         </CardHeader>
         <CardContent>
           {submitted ? (
             <div className="text-center py-8 space-y-4">
               <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
-              <h3 className="text-white text-xl font-semibold">Thank You!</h3>
-              <p className="text-zinc-400">Your feedback has been received. We appreciate you taking the time to help us improve.</p>
+              <h3 className="text-foreground text-xl font-semibold">Thank You!</h3>
+              <p className="text-muted-foreground">Your feedback has been received. We appreciate you taking the time to help us improve.</p>
               <Button onClick={() => setSubmitted(false)} variant="outline" data-testid="button-send-another">
                 Send Another
               </Button>
@@ -78,39 +78,39 @@ export default function FeedbackPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-zinc-400 text-xs uppercase tracking-wider mb-1 block">
-                  Name {isAuthenticated && <span className="text-zinc-600">(from account)</span>}
+                <label className="text-muted-foreground text-xs uppercase tracking-wider mb-1 block">
+                  Name {isAuthenticated && <span className="text-muted-foreground/60">(from account)</span>}
                 </label>
                 <Input
                   value={name}
                   onChange={(e) => !isAuthenticated && setName(e.target.value)}
                   placeholder="Your name"
-                  className={`bg-zinc-800 border-zinc-700 text-white ${isAuthenticated ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={isAuthenticated ? 'opacity-70 cursor-not-allowed' : ''}
                   readOnly={isAuthenticated}
                   data-testid="input-name"
                 />
               </div>
               <div>
-                <label className="text-zinc-400 text-xs uppercase tracking-wider mb-1 block">
-                  Email {isAuthenticated && <span className="text-zinc-600">(from account)</span>}
+                <label className="text-muted-foreground text-xs uppercase tracking-wider mb-1 block">
+                  Email {isAuthenticated && <span className="text-muted-foreground/60">(from account)</span>}
                 </label>
                 <Input
                   type="email"
                   value={email}
                   onChange={(e) => !isAuthenticated && setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className={`bg-zinc-800 border-zinc-700 text-white ${isAuthenticated ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  className={isAuthenticated ? 'opacity-70 cursor-not-allowed' : ''}
                   readOnly={isAuthenticated}
                   data-testid="input-email"
                 />
               </div>
               <div>
-                <label className="text-zinc-400 text-xs uppercase tracking-wider mb-1 block">Message</label>
+                <label className="text-muted-foreground text-xs uppercase tracking-wider mb-1 block">Message</label>
                 <Textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Share your feedback, suggestions, or report issues..."
-                  className="bg-zinc-800 border-zinc-700 text-white min-h-[120px]"
+                  className="min-h-[120px]"
                   data-testid="input-message"
                 />
               </div>
