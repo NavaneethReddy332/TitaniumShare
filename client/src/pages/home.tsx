@@ -341,9 +341,14 @@ export default function Home() {
     size: number;
     sizeFormatted: string;
     url: string;
+    requiresPassword?: boolean;
   } | null>(null);
   const [receiveDownloadProgress, setReceiveDownloadProgress] = useState<number | null>(null);
-  const [receiveDownloadStatus, setReceiveDownloadStatus] = useState<"idle" | "fetching" | "ready" | "downloading" | "complete" | "error">("idle");
+  const [receiveDownloadStatus, setReceiveDownloadStatus] = useState<"idle" | "fetching" | "ready" | "downloading" | "complete" | "error" | "needs_password">("idle");
+  const [receivePassword, setReceivePassword] = useState("");
+  const [showReceivePassword, setShowReceivePassword] = useState(false);
+  const [receivePasswordError, setReceivePasswordError] = useState("");
+  const [isUnlockingReceive, setIsUnlockingReceive] = useState(false);
   const [filePassword, setFilePassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const networkSpeed = useNetworkSpeed();
@@ -594,14 +599,32 @@ export default function Home() {
     const code = receiveCode.trim().toUpperCase();
     setReceiveDownloadStatus("fetching");
     setLastUploadedFile(null);
+    setReceivePassword("");
+    setReceivePasswordError("");
     
     try {
       const response = await fetch(`/api/files/download/${code}`);
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'File not found');
-      }
       const data = await response.json();
+      
+      // Handle password-protected files
+      if (response.status === 401 && data.requiresPassword) {
+        setReceivedFileInfo({
+          shareCode: code,
+          originalName: data.originalName,
+          size: data.size,
+          sizeFormatted: data.sizeFormatted,
+          url: "",
+          requiresPassword: true,
+        });
+        setReceiveDownloadStatus("needs_password");
+        setReceiveCode("");
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'File not found');
+      }
+      
       setReceivedFileInfo({
         shareCode: code,
         originalName: data.originalName,
@@ -615,6 +638,48 @@ export default function Home() {
       toast({ title: error instanceof Error ? error.message : "File not found", variant: "destructive" });
       setReceiveDownloadStatus("error");
       setTimeout(() => setReceiveDownloadStatus("idle"), 2000);
+    }
+  };
+
+  const handleUnlockReceivedFile = async () => {
+    if (!receivedFileInfo || !receivePassword.trim()) {
+      setReceivePasswordError("Please enter the password");
+      return;
+    }
+    
+    setIsUnlockingReceive(true);
+    setReceivePasswordError("");
+    
+    try {
+      const response = await fetch(`/api/files/download/${receivedFileInfo.shareCode}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: receivePassword }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          setReceivePasswordError("Incorrect password");
+        } else {
+          setReceivePasswordError(data.message || "Failed to unlock file");
+        }
+        return;
+      }
+      
+      // Update file info with the download URL
+      setReceivedFileInfo({
+        ...receivedFileInfo,
+        url: data.url,
+        requiresPassword: false,
+      });
+      setReceiveDownloadStatus("ready");
+      setReceivePassword("");
+    } catch {
+      setReceivePasswordError("Failed to unlock file");
+    } finally {
+      setIsUnlockingReceive(false);
     }
   };
 
@@ -684,6 +749,8 @@ export default function Home() {
     setReceivedFileInfo(null);
     setReceiveDownloadProgress(null);
     setReceiveDownloadStatus("idle");
+    setReceivePassword("");
+    setReceivePasswordError("");
   };
 
   const handleNavigateAccount = () => {
@@ -1164,9 +1231,18 @@ export default function Home() {
 
                 <div className="space-y-6">
                   <div className="bg-zinc-900/50 border border-zinc-800 rounded-md p-4">
-                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2">File Ready to Download</div>
+                    <div className="text-[10px] text-zinc-500 uppercase tracking-widest font-mono mb-2 flex items-center gap-2">
+                      {receivedFileInfo.requiresPassword ? (
+                        <>
+                          <Lock size={12} className="text-red-400" />
+                          <span>Password Protected File</span>
+                        </>
+                      ) : (
+                        <span>File Ready to Download</span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3">
-                      <FileIcon size={24} className="text-green-500 shrink-0" />
+                      <FileIcon size={24} className={receivedFileInfo.requiresPassword ? "text-red-400 shrink-0" : "text-green-500 shrink-0"} />
                       <div className="flex-1 min-w-0">
                         <p className="text-white text-sm font-medium truncate" data-testid="text-received-filename">
                           {receivedFileInfo.originalName}
@@ -1181,6 +1257,51 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
+
+                  {receiveDownloadStatus === "needs_password" && (
+                    <div className="space-y-4 p-4 bg-red-900/10 border border-red-900/30 rounded-md">
+                      <div className="flex items-center gap-2 text-red-400">
+                        <Lock size={16} />
+                        <span className="text-sm font-medium">This file is password protected</span>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-zinc-400 text-xs uppercase tracking-wider">Enter Password</label>
+                        <div className="relative">
+                          <Input
+                            type={showReceivePassword ? "text" : "password"}
+                            value={receivePassword}
+                            onChange={(e) => setReceivePassword(e.target.value)}
+                            placeholder="Enter file password"
+                            className="bg-zinc-800 border-zinc-700 text-white pr-10"
+                            data-testid="input-receive-password"
+                            onKeyDown={(e) => e.key === "Enter" && handleUnlockReceivedFile()}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowReceivePassword(!showReceivePassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                          >
+                            {showReceivePassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                        {receivePasswordError && (
+                          <p className="text-red-400 text-xs">{receivePasswordError}</p>
+                        )}
+                      </div>
+                      <Button
+                        onClick={handleUnlockReceivedFile}
+                        disabled={isUnlockingReceive}
+                        className="w-full gap-2"
+                        data-testid="btn-unlock-receive"
+                      >
+                        {isUnlockingReceive ? (
+                          <><Loader2 size={16} className="animate-spin" /> Unlocking...</>
+                        ) : (
+                          <><Lock size={16} /> Unlock File</>
+                        )}
+                      </Button>
+                    </div>
+                  )}
 
                   {(receiveDownloadStatus === "downloading" || receiveDownloadStatus === "complete") && receiveDownloadProgress !== null && (
                     <div className="space-y-2" data-testid="receive-download-progress">
@@ -1208,20 +1329,22 @@ export default function Home() {
                     </div>
                   )}
 
-                  <Button
-                    onClick={handleReceiveDownload}
-                    disabled={receiveDownloadStatus === "downloading"}
-                    data-testid="btn-receive-download"
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-mono uppercase tracking-wider"
-                  >
-                    {receiveDownloadStatus === "downloading" ? (
-                      <><Loader2 size={14} className="mr-2 animate-spin" /> Downloading...</>
-                    ) : receiveDownloadStatus === "complete" ? (
-                      <><Download size={14} className="mr-2" /> Download Again</>
-                    ) : (
-                      <><Download size={14} className="mr-2" /> Download File</>
-                    )}
-                  </Button>
+                  {receiveDownloadStatus !== "needs_password" && (
+                    <Button
+                      onClick={handleReceiveDownload}
+                      disabled={receiveDownloadStatus === "downloading"}
+                      data-testid="btn-receive-download"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-mono uppercase tracking-wider"
+                    >
+                      {receiveDownloadStatus === "downloading" ? (
+                        <><Loader2 size={14} className="mr-2 animate-spin" /> Downloading...</>
+                      ) : receiveDownloadStatus === "complete" ? (
+                        <><Download size={14} className="mr-2" /> Download Again</>
+                      ) : (
+                        <><Download size={14} className="mr-2" /> Download File</>
+                      )}
+                    </Button>
+                  )}
                 </div>
               </motion.div>
             ) : (
