@@ -235,15 +235,15 @@ function TitaniumLogo({ className = "" }: { className?: string }) {
   );
 }
 
-function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigateAccount }: { activeTab: string, setActiveTab: (tab: string) => void, onLogout: () => void, isAuthenticated: boolean, onNavigateAccount: () => void }) {
+function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigateAccount, onNavigate }: { activeTab: string, setActiveTab: (tab: string) => void, onLogout: () => void, isAuthenticated: boolean, onNavigateAccount: () => void, onNavigate: (path: string) => void }) {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   const menuItems = [
     { id: 'send', icon: Send, label: 'Send', action: () => setActiveTab('cloud') },
     { id: 'receive', icon: Download, label: 'Receive', action: () => setActiveTab('cloud') },
     { id: 'account', icon: User, label: 'Account', action: onNavigateAccount },
-    { id: 'feedback', icon: MessageSquare, label: 'Feedback', action: () => window.location.href = '/feedback' },
-    { id: 'about', icon: Info, label: 'About', action: () => window.location.href = '/about' },
+    { id: 'feedback', icon: MessageSquare, label: 'Feedback', action: () => onNavigate('/feedback') },
+    { id: 'about', icon: Info, label: 'About', action: () => onNavigate('/about') },
   ];
 
   return (
@@ -1062,7 +1062,7 @@ export default function Home() {
 
       {/* Main Content Area - contains sidebar */}
       <div className="content-with-sidebar">
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} isAuthenticated={isAuthenticated} onNavigateAccount={handleNavigateAccount} />
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} isAuthenticated={isAuthenticated} onNavigateAccount={handleNavigateAccount} onNavigate={navigate} />
         
         <main className="flex-1 flex flex-col md:flex-row pr-4 transition-all duration-300 overflow-auto">
         

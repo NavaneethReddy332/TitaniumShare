@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { ArrowLeft, MessageSquare, Send, CheckCircle2, Loader2 } from "lucide-react";
@@ -8,13 +8,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function FeedbackPage() {
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setName(user.username || "");
+      setEmail(user.email || "");
+    }
+  }, [user]);
 
   const submitMutation = useMutation({
     mutationFn: async (data: { name: string; email: string; message: string }) => {
@@ -69,23 +78,29 @@ export default function FeedbackPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-zinc-400 text-xs uppercase tracking-wider mb-1 block">Name</label>
+                <label className="text-zinc-400 text-xs uppercase tracking-wider mb-1 block">
+                  Name {isAuthenticated && <span className="text-zinc-600">(from account)</span>}
+                </label>
                 <Input
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => !isAuthenticated && setName(e.target.value)}
                   placeholder="Your name"
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  className={`bg-zinc-800 border-zinc-700 text-white ${isAuthenticated ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  readOnly={isAuthenticated}
                   data-testid="input-name"
                 />
               </div>
               <div>
-                <label className="text-zinc-400 text-xs uppercase tracking-wider mb-1 block">Email</label>
+                <label className="text-zinc-400 text-xs uppercase tracking-wider mb-1 block">
+                  Email {isAuthenticated && <span className="text-zinc-600">(from account)</span>}
+                </label>
                 <Input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => !isAuthenticated && setEmail(e.target.value)}
                   placeholder="your@email.com"
-                  className="bg-zinc-800 border-zinc-700 text-white"
+                  className={`bg-zinc-800 border-zinc-700 text-white ${isAuthenticated ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  readOnly={isAuthenticated}
                   data-testid="input-email"
                 />
               </div>
