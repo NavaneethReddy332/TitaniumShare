@@ -328,8 +328,8 @@ function OverviewTab() {
       </div>
 
       <div className="flex flex-row gap-5">
-        {/* History Panel - Always full width, no shrinking */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 flex-1" data-testid="card-history">
+        {/* History Panel - Fixed width, no shrinking when file details appear */}
+        <div className="bg-zinc-950 border border-zinc-800 rounded-md p-5 flex-1 min-w-0 xl:min-w-[500px] xl:shrink-0" data-testid="card-history">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-white">History</h3>
             <span className="text-[10px] text-zinc-500 border border-zinc-700 px-2 py-0.5 rounded-full flex items-center gap-1" data-testid="badge-live">
