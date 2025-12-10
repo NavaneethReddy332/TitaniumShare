@@ -742,13 +742,7 @@ export default function Home() {
           currentFile: zipFile.name,
         }));
 
-        setUploadProgress([{ fileName: zipFile.name, progress: 0, status: 'uploading' }]);
-
         const uploadedFileData = await uploadWithProgressAndRef(zipFile);
-        
-        setUploadProgress(prev => 
-          prev.map(p => p.fileName === zipFile.name ? { ...p, progress: 100, status: 'complete' } : p)
-        );
         
         setCompressionProgress(prev => ({ ...prev, status: 'complete', progress: 100 }));
         setLastUploadedFile(uploadedFileData);
@@ -757,7 +751,6 @@ export default function Home() {
         queryClient.invalidateQueries({ queryKey: ['/api/files'] });
         
         setTimeout(() => {
-          setUploadProgress([]);
           setCompressionProgress({
             status: 'idle',
             progress: 0,
@@ -1112,13 +1105,13 @@ export default function Home() {
                         transition-all duration-300 cursor-pointer
                         hover:border-zinc-600 hover:bg-zinc-900/30
                         ${isDragActive ? 'border-white bg-zinc-900/50' : ''}
-                        ${(filesToUpload.length > 0 || uploadProgress.length > 0) ? 'min-h-[120px]' : ''}
+                        ${(filesToUpload.length > 0 || uploadProgress.length > 0 || compressionProgress.status !== 'idle') ? 'min-h-[120px]' : ''}
                       `}
                     >
                       <input {...getInputProps()} />
                       
                       {/* Empty state */}
-                      {filesToUpload.length === 0 && uploadProgress.length === 0 && (
+                      {filesToUpload.length === 0 && uploadProgress.length === 0 && compressionProgress.status === 'idle' && (
                         <div className="flex flex-col items-center justify-center gap-3 py-4">
                           <Upload size={20} className="text-zinc-600" />
                           <p className="text-zinc-500 text-xs font-mono text-center">
@@ -1128,7 +1121,7 @@ export default function Home() {
                       )}
 
                       {/* Files waiting to upload */}
-                      {filesToUpload.length > 0 && (
+                      {filesToUpload.length > 0 && compressionProgress.status === 'idle' && (
                         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                           {filesToUpload.map((file, idx) => (
                             <div key={`pending-${file.name}-${idx}`} data-testid={`file-item-${idx}`} className="flex items-center justify-between p-2 bg-zinc-900/50 border border-zinc-800 text-[10px]">
@@ -1147,8 +1140,80 @@ export default function Home() {
                         </div>
                       )}
 
-                      {/* Upload Progress */}
-                      {uploadProgress.length > 0 && (
+                      {/* Compression/Upload Progress - shown inside dropzone */}
+                      {(compressionProgress.status === 'compressing' || compressionProgress.status === 'uploading' || compressionProgress.status === 'complete') && (
+                        <div className="space-y-3" onClick={(e) => e.stopPropagation()} data-testid="compression-progress-container">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {compressionProgress.status === 'compressing' ? (
+                                <Archive size={14} className="text-cyan-500 animate-pulse" />
+                              ) : compressionProgress.status === 'complete' ? (
+                                <CheckCircle2 size={14} className="text-green-500" />
+                              ) : (
+                                <Upload size={14} className="text-green-500 animate-pulse" />
+                              )}
+                              <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">
+                                {compressionProgress.status === 'compressing' ? 'Compressing' : compressionProgress.status === 'complete' ? 'Complete' : 'Uploading'}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-white font-mono" data-testid="text-progress-percent">
+                              {compressionProgress.progress}%
+                            </span>
+                          </div>
+                          
+                          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${compressionProgress.progress}%` }}
+                              transition={{ duration: 0.1 }}
+                              className={`h-full ${compressionProgress.status === 'complete' ? 'bg-green-500' : compressionProgress.status === 'compressing' ? 'bg-cyan-500' : 'bg-white'}`}
+                              data-testid="progress-compression"
+                            />
+                          </div>
+                          
+                          <div className="flex items-center justify-between">
+                            <p className="text-[9px] text-zinc-500 font-mono truncate max-w-[180px]" data-testid="text-current-file">
+                              {compressionProgress.status === 'compressing' 
+                                ? `${compressionProgress.processedFiles}/${compressionProgress.totalFiles} - ${compressionProgress.currentFile}`
+                                : compressionProgress.status === 'complete'
+                                ? 'Upload successful'
+                                : compressionProgress.currentFile
+                              }
+                            </p>
+                            {compressionProgress.status !== 'complete' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => { e.stopPropagation(); handleCancelOperation(); }}
+                                className="h-6 px-2 text-[9px] text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                                data-testid="btn-cancel-operation"
+                              >
+                                <XCircle size={12} className="mr-1" />
+                                Cancel
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Cancelled Status */}
+                      {compressionProgress.status === 'cancelled' && (
+                        <div className="flex items-center justify-center gap-2 py-4" onClick={(e) => e.stopPropagation()} data-testid="status-cancelled">
+                          <XCircle className="w-4 h-4 text-red-500" />
+                          <span className="text-red-400 text-xs font-mono">Operation cancelled</span>
+                        </div>
+                      )}
+
+                      {/* Error Status */}
+                      {compressionProgress.status === 'error' && (
+                        <div className="flex items-center justify-center gap-2 py-4" onClick={(e) => e.stopPropagation()} data-testid="status-error">
+                          <AlertCircle className="w-4 h-4 text-red-500" />
+                          <span className="text-red-400 text-xs font-mono">Operation failed</span>
+                        </div>
+                      )}
+
+                      {/* Single file Upload Progress */}
+                      {uploadProgress.length > 0 && compressionProgress.status === 'idle' && (
                         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                           {uploadProgress.map((p, idx) => (
                             <div key={`progress-${idx}`} className="p-2 bg-zinc-900/50 border border-zinc-800">
@@ -1175,7 +1240,7 @@ export default function Home() {
                       )}
 
                       {/* Add more files hint when files exist */}
-                      {(filesToUpload.length > 0 || uploadProgress.length > 0) && (
+                      {(filesToUpload.length > 0 || uploadProgress.length > 0) && compressionProgress.status === 'idle' && (
                         <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-zinc-800/50">
                           <Upload size={12} className="text-zinc-600" />
                           <span className="text-zinc-600 text-[9px] font-mono">DROP MORE FILES</span>
@@ -1238,76 +1303,6 @@ export default function Home() {
                               </p>
                             </div>
                           )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Compression/Upload Progress */}
-                    <AnimatePresence>
-                      {(compressionProgress.status === 'compressing' || compressionProgress.status === 'uploading') && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="space-y-3 p-3 bg-zinc-900/50 border border-zinc-800 rounded-md"
-                          data-testid="compression-progress-container"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {compressionProgress.status === 'compressing' ? (
-                                <Archive size={14} className="text-cyan-500" />
-                              ) : (
-                                <Upload size={14} className="text-green-500" />
-                              )}
-                              <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">
-                                {compressionProgress.status === 'compressing' ? 'Compressing' : 'Uploading'}
-                              </span>
-                            </div>
-                            <span className="text-[10px] text-white font-mono" data-testid="text-progress-percent">
-                              {compressionProgress.progress}%
-                            </span>
-                          </div>
-                          
-                          <Progress 
-                            value={compressionProgress.progress} 
-                            className="h-2" 
-                            data-testid="progress-compression"
-                          />
-                          
-                          <div className="flex items-center justify-between">
-                            <p className="text-[9px] text-zinc-500 font-mono truncate max-w-[200px]" data-testid="text-current-file">
-                              {compressionProgress.status === 'compressing' 
-                                ? `${compressionProgress.processedFiles}/${compressionProgress.totalFiles} - ${compressionProgress.currentFile}`
-                                : compressionProgress.currentFile
-                              }
-                            </p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={handleCancelOperation}
-                              className="h-6 px-2 text-[9px] text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                              data-testid="btn-cancel-operation"
-                            >
-                              <XCircle size={12} className="mr-1" />
-                              Cancel
-                            </Button>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    {/* Cancelled/Error Status */}
-                    <AnimatePresence>
-                      {compressionProgress.status === 'cancelled' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="flex items-center gap-2 p-2 bg-red-900/20 border border-red-800 rounded-md"
-                          data-testid="status-cancelled"
-                        >
-                          <XCircle className="w-4 h-4 text-red-500" />
-                          <span className="text-red-400 text-xs">Operation cancelled</span>
                         </motion.div>
                       )}
                     </AnimatePresence>
