@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import JSZip from "jszip";
 import { 
   Cloud, 
   Share2, 
@@ -29,7 +30,9 @@ import {
   AlertCircle,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Archive,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +64,14 @@ interface UploadProgress {
   fileName: string;
   progress: number;
   status: 'uploading' | 'complete' | 'error';
+}
+
+interface CompressionProgress {
+  status: 'idle' | 'compressing' | 'uploading' | 'complete' | 'error' | 'cancelled';
+  progress: number;
+  currentFile: string;
+  totalFiles: number;
+  processedFiles: number;
 }
 
 
@@ -352,6 +363,15 @@ export default function Home() {
   const [filePassword, setFilePassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const networkSpeed = useNetworkSpeed();
+  const [compressionProgress, setCompressionProgress] = useState<CompressionProgress>({
+    status: 'idle',
+    progress: 0,
+    currentFile: '',
+    totalFiles: 0,
+    processedFiles: 0,
+  });
+  const cancelRef = useRef(false);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const getPasswordStrength = (password: string): { level: 0 | 1 | 2 | 3 | 4; label: string; color: string } => {
     if (!password) return { level: 0, label: "", color: "" };
@@ -523,50 +543,278 @@ export default function Home() {
     return uploadedFileData;
   };
 
+  const compressFilesToZip = async (files: File[]): Promise<File | null> => {
+    const zip = new JSZip();
+    const totalFiles = files.length;
+    
+    setCompressionProgress({
+      status: 'compressing',
+      progress: 0,
+      currentFile: '',
+      totalFiles,
+      processedFiles: 0,
+    });
+
+    for (let i = 0; i < files.length; i++) {
+      if (cancelRef.current) {
+        setCompressionProgress(prev => ({ ...prev, status: 'cancelled' }));
+        return null;
+      }
+      
+      const file = files[i];
+      setCompressionProgress(prev => ({
+        ...prev,
+        currentFile: file.name,
+        processedFiles: i,
+        progress: Math.round((i / totalFiles) * 50),
+      }));
+      
+      const arrayBuffer = await file.arrayBuffer();
+      zip.file(file.name, arrayBuffer);
+    }
+    
+    if (cancelRef.current) {
+      setCompressionProgress(prev => ({ ...prev, status: 'cancelled' }));
+      return null;
+    }
+    
+    setCompressionProgress(prev => ({
+      ...prev,
+      currentFile: 'Generating archive...',
+      processedFiles: totalFiles,
+      progress: 50,
+    }));
+    
+    const zipBlob = await zip.generateAsync(
+      { 
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 },
+      },
+      (metadata) => {
+        if (cancelRef.current) return;
+        const progressPercent = 50 + Math.round(metadata.percent / 2);
+        setCompressionProgress(prev => ({
+          ...prev,
+          progress: progressPercent,
+        }));
+      }
+    );
+    
+    if (cancelRef.current) {
+      setCompressionProgress(prev => ({ ...prev, status: 'cancelled' }));
+      return null;
+    }
+    
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const zipFileName = `archive_${timestamp}_${files.length}files.zip`;
+    return new File([zipBlob], zipFileName, { type: 'application/zip' });
+  };
+
+  const handleCancelOperation = () => {
+    cancelRef.current = true;
+    if (xhrRef.current) {
+      xhrRef.current.abort();
+    }
+    setCompressionProgress({
+      status: 'cancelled',
+      progress: 0,
+      currentFile: '',
+      totalFiles: 0,
+      processedFiles: 0,
+    });
+    setUploadProgress([]);
+    toast({ title: "Operation cancelled" });
+    setTimeout(() => {
+      cancelRef.current = false;
+      setCompressionProgress({
+        status: 'idle',
+        progress: 0,
+        currentFile: '',
+        totalFiles: 0,
+        processedFiles: 0,
+      });
+    }, 1500);
+  };
+
+  const uploadWithProgressAndRef = async (file: File): Promise<UploadedFile> => {
+    const presignResponse = await fetch('/api/files/presign', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        fileName: file.name,
+        contentType: file.type || 'application/octet-stream',
+        size: file.size,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      throw new Error('Failed to get upload URL');
+    }
+
+    const { uploadUrl, storageKey, shareCode } = await presignResponse.json();
+
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setCompressionProgress(prev => ({
+            ...prev,
+            status: 'uploading',
+            progress: percent,
+          }));
+          setUploadProgress(prev => 
+            prev.map(p => p.fileName === file.name ? { ...p, progress: percent } : p)
+          );
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        xhrRef.current = null;
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          reject(new Error('Upload to storage failed'));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        xhrRef.current = null;
+        reject(new Error('Upload failed'));
+      });
+      xhr.addEventListener('abort', () => {
+        xhrRef.current = null;
+        reject(new Error('Upload aborted'));
+      });
+
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+      xhr.send(file);
+    });
+
+    const confirmResponse = await fetch('/api/files/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        storageKey,
+        shareCode,
+        originalName: file.name,
+        size: file.size,
+        contentType: file.type || 'application/octet-stream',
+        password: filePassword || null,
+      }),
+    });
+
+    if (!confirmResponse.ok) {
+      throw new Error('Failed to confirm upload');
+    }
+
+    return confirmResponse.json();
+  };
+
   const handleUploadAll = async () => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
     }
 
+    cancelRef.current = false;
     const filesToProcess = [...filesToUpload];
     setFilesToUpload([]);
 
-    // Initialize all progress entries
-    setUploadProgress(prev => [
-      ...prev,
-      ...filesToProcess.map(file => ({ fileName: file.name, progress: 0, status: 'uploading' as const }))
-    ]);
-
-    // Upload all files in parallel for maximum speed
-    const uploadPromises = filesToProcess.map(async (file) => {
+    if (filesToProcess.length > 1) {
       try {
-        const uploadedFileData = await uploadWithProgress(file);
+        const zipFile = await compressFilesToZip(filesToProcess);
+        
+        if (!zipFile || cancelRef.current) {
+          return;
+        }
+
+        setCompressionProgress(prev => ({
+          ...prev,
+          status: 'uploading',
+          progress: 0,
+          currentFile: zipFile.name,
+        }));
+
+        setUploadProgress([{ fileName: zipFile.name, progress: 0, status: 'uploading' }]);
+
+        const uploadedFileData = await uploadWithProgressAndRef(zipFile);
         
         setUploadProgress(prev => 
-          prev.map(p => p.fileName === file.name ? { ...p, progress: 100, status: 'complete' } : p)
+          prev.map(p => p.fileName === zipFile.name ? { ...p, progress: 100, status: 'complete' } : p)
         );
         
-        // Set the last uploaded file to show in the center panel
+        setCompressionProgress(prev => ({ ...prev, status: 'complete', progress: 100 }));
         setLastUploadedFile(uploadedFileData);
+        toast({ title: `Uploaded ${zipFile.name} (${filesToProcess.length} files compressed)` });
         
-        toast({ title: `Uploaded ${file.name}` });
-        return { success: true, file, data: uploadedFileData };
-      } catch {
-        setUploadProgress(prev => 
-          prev.map(p => p.fileName === file.name ? { ...p, status: 'error' } : p)
-        );
-        toast({ title: `Failed to upload ${file.name}`, variant: "destructive" });
-        return { success: false, file, data: null };
+        queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+        
+        setTimeout(() => {
+          setUploadProgress([]);
+          setCompressionProgress({
+            status: 'idle',
+            progress: 0,
+            currentFile: '',
+            totalFiles: 0,
+            processedFiles: 0,
+          });
+        }, 3000);
+        
+      } catch (error) {
+        if (cancelRef.current) return;
+        setCompressionProgress(prev => ({ ...prev, status: 'error' }));
+        toast({ title: "Failed to compress and upload files", variant: "destructive" });
+        setTimeout(() => {
+          setCompressionProgress({
+            status: 'idle',
+            progress: 0,
+            currentFile: '',
+            totalFiles: 0,
+            processedFiles: 0,
+          });
+        }, 3000);
       }
-    });
+    } else {
+      setUploadProgress(prev => [
+        ...prev,
+        ...filesToProcess.map(file => ({ fileName: file.name, progress: 0, status: 'uploading' as const }))
+      ]);
 
-    await Promise.all(uploadPromises);
-    queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+      const uploadPromises = filesToProcess.map(async (file) => {
+        try {
+          const uploadedFileData = await uploadWithProgress(file);
+          
+          setUploadProgress(prev => 
+            prev.map(p => p.fileName === file.name ? { ...p, progress: 100, status: 'complete' } : p)
+          );
+          
+          setLastUploadedFile(uploadedFileData);
+          
+          toast({ title: `Uploaded ${file.name}` });
+          return { success: true, file, data: uploadedFileData };
+        } catch {
+          setUploadProgress(prev => 
+            prev.map(p => p.fileName === file.name ? { ...p, status: 'error' } : p)
+          );
+          toast({ title: `Failed to upload ${file.name}`, variant: "destructive" });
+          return { success: false, file, data: null };
+        }
+      });
 
-    setTimeout(() => {
-      setUploadProgress(prev => prev.filter(p => p.status !== 'complete'));
-    }, 3000);
+      await Promise.all(uploadPromises);
+      queryClient.invalidateQueries({ queryKey: ['/api/files'] });
+
+      setTimeout(() => {
+        setUploadProgress(prev => prev.filter(p => p.status !== 'complete'));
+      }, 3000);
+    }
   };
 
   const copyShareCode = (code: string) => {
@@ -994,9 +1242,79 @@ export default function Home() {
                       )}
                     </AnimatePresence>
 
+                    {/* Compression/Upload Progress */}
+                    <AnimatePresence>
+                      {(compressionProgress.status === 'compressing' || compressionProgress.status === 'uploading') && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="space-y-3 p-3 bg-zinc-900/50 border border-zinc-800 rounded-md"
+                          data-testid="compression-progress-container"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              {compressionProgress.status === 'compressing' ? (
+                                <Archive size={14} className="text-cyan-500" />
+                              ) : (
+                                <Upload size={14} className="text-green-500" />
+                              )}
+                              <span className="text-[10px] text-zinc-400 font-mono uppercase tracking-wider">
+                                {compressionProgress.status === 'compressing' ? 'Compressing' : 'Uploading'}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-white font-mono" data-testid="text-progress-percent">
+                              {compressionProgress.progress}%
+                            </span>
+                          </div>
+                          
+                          <Progress 
+                            value={compressionProgress.progress} 
+                            className="h-2" 
+                            data-testid="progress-compression"
+                          />
+                          
+                          <div className="flex items-center justify-between">
+                            <p className="text-[9px] text-zinc-500 font-mono truncate max-w-[200px]" data-testid="text-current-file">
+                              {compressionProgress.status === 'compressing' 
+                                ? `${compressionProgress.processedFiles}/${compressionProgress.totalFiles} - ${compressionProgress.currentFile}`
+                                : compressionProgress.currentFile
+                              }
+                            </p>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={handleCancelOperation}
+                              className="h-6 px-2 text-[9px] text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                              data-testid="btn-cancel-operation"
+                            >
+                              <XCircle size={12} className="mr-1" />
+                              Cancel
+                            </Button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Cancelled/Error Status */}
+                    <AnimatePresence>
+                      {compressionProgress.status === 'cancelled' && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="flex items-center gap-2 p-2 bg-red-900/20 border border-red-800 rounded-md"
+                          data-testid="status-cancelled"
+                        >
+                          <XCircle className="w-4 h-4 text-red-500" />
+                          <span className="text-red-400 text-xs">Operation cancelled</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     {/* Upload Button */}
                     <AnimatePresence>
-                      {filesToUpload.length > 0 && (
+                      {filesToUpload.length > 0 && compressionProgress.status === 'idle' && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
@@ -1005,13 +1323,16 @@ export default function Home() {
                           <Button 
                             data-testid="btn-start-upload" 
                             onClick={handleUploadAll}
-                            disabled={uploadProgress.some(p => p.status === 'uploading')}
+                            disabled={uploadProgress.some(p => p.status === 'uploading') || compressionProgress.status !== 'idle'}
                             className="w-full rounded-none bg-white text-black hover:bg-zinc-200 font-mono text-[10px] uppercase font-bold h-10"
                           >
-                            {uploadProgress.some(p => p.status === 'uploading') ? (
-                              <><Loader2 size={14} className="mr-2 animate-spin" /> Uploading...</>
+                            {filesToUpload.length > 1 ? (
+                              <>
+                                <Archive size={14} className="mr-2" />
+                                {`Compress & Upload ${filesToUpload.length} Files`}
+                              </>
                             ) : (
-                              `Upload ${filesToUpload.length} File${filesToUpload.length > 1 ? 's' : ''}`
+                              `Upload ${filesToUpload.length} File`
                             )}
                           </Button>
                         </motion.div>
