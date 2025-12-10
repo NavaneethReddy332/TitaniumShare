@@ -32,7 +32,8 @@ import {
   Eye,
   EyeOff,
   Archive,
-  XCircle
+  XCircle,
+  Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -241,6 +242,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
   const menuItems = [
     { id: 'send', icon: Send, label: 'Send', action: () => setActiveTab('cloud') },
     { id: 'receive', icon: Download, label: 'Receive', action: () => setActiveTab('cloud') },
+    { id: 'p2p', icon: Zap, label: 'P2P', action: () => onNavigate('/p2p') },
     { id: 'account', icon: User, label: 'Account', action: onNavigateAccount },
     { id: 'feedback', icon: MessageSquare, label: 'Feedback', action: () => onNavigate('/feedback') },
     { id: 'about', icon: Info, label: 'About', action: () => onNavigate('/about') },

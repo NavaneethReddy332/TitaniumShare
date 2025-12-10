@@ -2,9 +2,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { setupSignaling } from "./signaling";
 
 const app = express();
 const httpServer = createServer(app);
+
+// Setup WebSocket signaling for P2P
+setupSignaling(httpServer);
 
 declare module "http" {
   interface IncomingMessage {

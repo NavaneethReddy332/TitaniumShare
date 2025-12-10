@@ -3,6 +3,7 @@ import {
   files,
   deletedAccounts,
   feedback,
+  p2pRooms,
   type User,
   type InsertUser,
   type File,
@@ -10,6 +11,8 @@ import {
   type DeletedAccount,
   type Feedback,
   type InsertFeedback,
+  type P2PRoom,
+  type InsertP2PRoom,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sum, gt } from "drizzle-orm";
@@ -34,6 +37,11 @@ export interface IStorage {
   updateFilePassword(id: string, password: string | null): Promise<void>;
   createFeedback(feedbackData: InsertFeedback): Promise<Feedback>;
   getAllFeedback(): Promise<Feedback[]>;
+  // P2P Room methods
+  createP2PRoom(room: InsertP2PRoom): Promise<P2PRoom>;
+  getP2PRoomByCode(roomCode: string): Promise<P2PRoom | undefined>;
+  updateP2PRoomStatus(roomCode: string, status: string): Promise<void>;
+  deleteP2PRoom(roomCode: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -160,6 +168,25 @@ export class DatabaseStorage implements IStorage {
 
   async getAllFeedback(): Promise<Feedback[]> {
     return await db.select().from(feedback).orderBy(desc(feedback.createdAt));
+  }
+
+  // P2P Room methods
+  async createP2PRoom(roomData: InsertP2PRoom): Promise<P2PRoom> {
+    const [room] = await db.insert(p2pRooms).values(roomData).returning();
+    return room;
+  }
+
+  async getP2PRoomByCode(roomCode: string): Promise<P2PRoom | undefined> {
+    const [room] = await db.select().from(p2pRooms).where(eq(p2pRooms.roomCode, roomCode));
+    return room;
+  }
+
+  async updateP2PRoomStatus(roomCode: string, status: string): Promise<void> {
+    await db.update(p2pRooms).set({ status }).where(eq(p2pRooms.roomCode, roomCode));
+  }
+
+  async deleteP2PRoom(roomCode: string): Promise<void> {
+    await db.delete(p2pRooms).where(eq(p2pRooms.roomCode, roomCode));
   }
 }
 

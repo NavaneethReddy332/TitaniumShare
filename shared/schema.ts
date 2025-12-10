@@ -86,3 +86,23 @@ export const deletedAccounts = sqliteTable("deleted_accounts", {
 });
 
 export type DeletedAccount = typeof deletedAccounts.$inferSelect;
+
+// P2P Transfer rooms for WebRTC signaling
+export const p2pRooms = sqliteTable("p2p_rooms", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  roomCode: text("room_code").unique().notNull(),
+  hostId: text("host_id").notNull(),
+  fileName: text("file_name"),
+  fileSize: integer("file_size"),
+  status: text("status").default("waiting"), // waiting, connected, transferring, completed
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+});
+
+export const insertP2PRoomSchema = createInsertSchema(p2pRooms).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertP2PRoom = z.infer<typeof insertP2PRoomSchema>;
+export type P2PRoom = typeof p2pRooms.$inferSelect;

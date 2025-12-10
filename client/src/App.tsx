@@ -9,6 +9,7 @@ import Account from "@/pages/account";
 import DownloadPage from "@/pages/download";
 import FeedbackPage from "@/pages/feedback";
 import AboutPage from "@/pages/about";
+import P2PPage from "@/pages/p2p";
 
 function Router() {
   return (
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/download/:shareCode" component={DownloadPage} />
       <Route path="/feedback" component={FeedbackPage} />
       <Route path="/about" component={AboutPage} />
+      <Route path="/p2p" component={P2PPage} />
       <Route component={NotFound} />
     </Switch>
   );
