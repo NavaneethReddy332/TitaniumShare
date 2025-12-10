@@ -13,6 +13,7 @@ import {
   ArrowRight, 
   X, 
   Wifi, 
+  WifiOff,
   Menu,
   User,
   Send,
@@ -33,7 +34,8 @@ import {
   EyeOff,
   Archive,
   XCircle,
-  Zap
+  Zap,
+  Server
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +50,14 @@ import { useToast } from "@/hooks/use-toast";
 import { QRCodeSVG } from "qrcode.react";
 import { Link2 } from "lucide-react";
 import { useNetworkSpeed } from "@/hooks/useNetworkSpeed";
+import { 
+  P2PTransfer, 
+  generateRoomCode, 
+  formatBytes as p2pFormatBytes, 
+  formatSpeed,
+  type P2PStatus,
+  type P2PTransferProgress
+} from "@/lib/p2p";
 
 interface UploadedFile {
   id: string;
@@ -242,7 +252,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
   const menuItems = [
     { id: 'send', icon: Send, label: 'Send', action: () => setActiveTab('cloud') },
     { id: 'receive', icon: Download, label: 'Receive', action: () => setActiveTab('cloud') },
-    { id: 'p2p', icon: Zap, label: 'P2P', action: () => onNavigate('/p2p') },
+    { id: 'p2p', icon: Zap, label: 'P2P', action: () => setActiveTab('p2p') },
     { id: 'account', icon: User, label: 'Account', action: onNavigateAccount },
     { id: 'feedback', icon: MessageSquare, label: 'Feedback', action: () => onNavigate('/feedback') },
     { id: 'about', icon: Info, label: 'About', action: () => onNavigate('/about') },
@@ -374,6 +384,23 @@ export default function Home() {
   });
   const cancelRef = useRef(false);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+
+  // P2P State
+  const [p2pMode, setP2pMode] = useState<"send" | "receive">("send");
+  const [p2pSelectedFile, setP2pSelectedFile] = useState<File | null>(null);
+  const [p2pRoomCode, setP2pRoomCode] = useState<string>("");
+  const [p2pSendStatus, setP2pSendStatus] = useState<P2PStatus>("idle");
+  const [p2pSendProgress, setP2pSendProgress] = useState<P2PTransferProgress | null>(null);
+  const [p2pPeerConnected, setP2pPeerConnected] = useState(false);
+  const [p2pCopiedCode, setP2pCopiedCode] = useState(false);
+  const [p2pCopiedLink, setP2pCopiedLink] = useState(false);
+  const p2pSendTransferRef = useRef<P2PTransfer | null>(null);
+  
+  const [p2pReceiveRoomCode, setP2pReceiveRoomCode] = useState<string>("");
+  const [p2pReceiveStatus, setP2pReceiveStatus] = useState<P2PStatus>("idle");
+  const [p2pReceiveProgress, setP2pReceiveProgress] = useState<P2PTransferProgress | null>(null);
+  const [p2pReceivedFile, setP2pReceivedFile] = useState<{ blob: Blob; name: string } | null>(null);
+  const p2pReceiveTransferRef = useRef<P2PTransfer | null>(null);
 
   const getPasswordStrength = (password: string): { level: 0 | 1 | 2 | 3 | 4; label: string; color: string } => {
     if (!password) return { level: 0, label: "", color: "" };
@@ -996,6 +1023,151 @@ export default function Home() {
     setReceivePasswordError("");
   };
 
+  // P2P Dropzone
+  const onP2pDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles.length > 0) {
+      setP2pSelectedFile(acceptedFiles[0]);
+    }
+  }, []);
+
+  const { getRootProps: getP2pRootProps, getInputProps: getP2pInputProps, isDragActive: isP2pDragActive } = useDropzone({ 
+    onDrop: onP2pDrop,
+    multiple: false
+  });
+
+  // P2P Functions
+  const startP2pSending = async () => {
+    if (!p2pSelectedFile) return;
+
+    const code = generateRoomCode();
+    setP2pRoomCode(code);
+    setP2pSendStatus("connecting");
+    setP2pPeerConnected(false);
+
+    const transfer = new P2PTransfer("host", code, {
+      onStatusChange: (status) => {
+        setP2pSendStatus(status);
+        if (status === "completed") {
+          toast({ title: "File sent successfully!" });
+        }
+      },
+      onProgress: (progress) => {
+        setP2pSendProgress(progress);
+      },
+      onPeerConnected: () => {
+        setP2pPeerConnected(true);
+        toast({ title: "Peer connected! Starting transfer..." });
+      },
+      onPeerLeft: () => {
+        setP2pPeerConnected(false);
+        toast({ title: "Peer disconnected", variant: "destructive" });
+      },
+      onError: (error) => {
+        toast({ title: error, variant: "destructive" });
+      },
+    });
+
+    p2pSendTransferRef.current = transfer;
+    await transfer.connect(p2pSelectedFile);
+  };
+
+  const cancelP2pSend = () => {
+    p2pSendTransferRef.current?.disconnect();
+    p2pSendTransferRef.current = null;
+    setP2pSendStatus("idle");
+    setP2pSendProgress(null);
+    setP2pRoomCode("");
+    setP2pPeerConnected(false);
+  };
+
+  const startP2pReceiving = async () => {
+    if (!p2pReceiveRoomCode.trim()) {
+      toast({ title: "Please enter a room code", variant: "destructive" });
+      return;
+    }
+
+    setP2pReceiveStatus("connecting");
+
+    const transfer = new P2PTransfer("peer", p2pReceiveRoomCode.toUpperCase().trim(), {
+      onStatusChange: (status) => {
+        setP2pReceiveStatus(status);
+      },
+      onProgress: (progress) => {
+        setP2pReceiveProgress(progress);
+      },
+      onFileReceived: (blob, fileName) => {
+        setP2pReceivedFile({ blob, name: fileName });
+        toast({ title: "File received successfully!" });
+      },
+      onPeerLeft: () => {
+        toast({ title: "Host disconnected", variant: "destructive" });
+        setP2pReceiveStatus("error");
+      },
+      onError: (error) => {
+        toast({ title: error, variant: "destructive" });
+      },
+    });
+
+    p2pReceiveTransferRef.current = transfer;
+    await transfer.connect();
+  };
+
+  const cancelP2pReceive = () => {
+    p2pReceiveTransferRef.current?.disconnect();
+    p2pReceiveTransferRef.current = null;
+    setP2pReceiveStatus("idle");
+    setP2pReceiveProgress(null);
+    setP2pReceivedFile(null);
+  };
+
+  const downloadP2pReceivedFile = () => {
+    if (!p2pReceivedFile) return;
+    
+    const url = URL.createObjectURL(p2pReceivedFile.blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = p2pReceivedFile.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const copyP2pCode = () => {
+    navigator.clipboard.writeText(p2pRoomCode);
+    setP2pCopiedCode(true);
+    setTimeout(() => setP2pCopiedCode(false), 2000);
+  };
+
+  const copyP2pLink = () => {
+    const url = `${window.location.origin}/?p2p=${p2pRoomCode}`;
+    navigator.clipboard.writeText(url);
+    setP2pCopiedLink(true);
+    setTimeout(() => setP2pCopiedLink(false), 2000);
+    toast({ title: "Link copied to clipboard" });
+  };
+
+  const getP2pShareUrl = () => `${window.location.origin}/?p2p=${p2pRoomCode}`;
+
+  // P2P URL param handling
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const p2pCode = params.get("p2p");
+    if (p2pCode) {
+      setActiveTab("p2p");
+      setP2pMode("receive");
+      setP2pReceiveRoomCode(p2pCode.toUpperCase());
+    }
+  }, []);
+
+  // P2P cleanup on unmount
+  useEffect(() => {
+    return () => {
+      p2pSendTransferRef.current?.disconnect();
+      p2pReceiveTransferRef.current?.disconnect();
+    };
+  }, []);
+
   const handleNavigateAccount = () => {
     if (isAuthenticated) {
       navigate('/account');
@@ -1381,19 +1553,358 @@ export default function Home() {
                   </div>
                 </>
               ) : (
-                /* P2P Coming Soon */
+                /* P2P Transfer Section */
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex flex-col items-center justify-center py-16 text-center"
+                  className="space-y-4"
                 >
-                  <div className="w-16 h-16 border border-border rounded-full flex items-center justify-center mb-4">
-                    <Share2 size={24} className="text-muted-foreground/70" />
+                  {/* P2P Mode Toggle */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant={p2pMode === "send" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setP2pMode("send")}
+                      className="flex-1 rounded-none font-mono text-[10px] uppercase"
+                      data-testid="btn-p2p-send-mode"
+                    >
+                      <Upload size={14} className="mr-2" />
+                      Send
+                    </Button>
+                    <Button
+                      variant={p2pMode === "receive" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setP2pMode("receive")}
+                      className="flex-1 rounded-none font-mono text-[10px] uppercase"
+                      data-testid="btn-p2p-receive-mode"
+                    >
+                      <Download size={14} className="mr-2" />
+                      Receive
+                    </Button>
                   </div>
-                  <h3 className="text-foreground font-mono text-sm uppercase tracking-widest mb-2">P2P Transfer</h3>
-                  <p className="text-muted-foreground text-xs font-mono">Coming Soon</p>
-                  <div className="mt-4 px-3 py-1 border border-border bg-secondary/50">
-                    <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-wider">Under Development</span>
+
+                  {/* P2P SEND */}
+                  {p2pMode === "send" && (
+                    <div className="space-y-4">
+                      {p2pSendStatus === "idle" && (
+                        <>
+                          <div
+                            {...getP2pRootProps()}
+                            className={`border border-dashed rounded-none p-4 text-center cursor-pointer transition-all ${
+                              isP2pDragActive 
+                                ? "border-foreground bg-secondary/50" 
+                                : p2pSelectedFile 
+                                  ? "border-green-500 bg-green-500/5" 
+                                  : "border-border hover:border-muted-foreground/50"
+                            }`}
+                            data-testid="dropzone-p2p-send"
+                          >
+                            <input {...getP2pInputProps()} />
+                            {p2pSelectedFile ? (
+                              <div className="flex items-center justify-center gap-3">
+                                <FileIcon size={16} className="text-green-500" />
+                                <div className="text-left">
+                                  <p className="font-mono text-xs text-foreground">{p2pSelectedFile.name}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {p2pFormatBytes(p2pSelectedFile.size)}
+                                  </p>
+                                </div>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setP2pSelectedFile(null);
+                                  }}
+                                  data-testid="btn-p2p-remove-file"
+                                >
+                                  <X size={14} />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="py-4">
+                                <Upload size={20} className="mx-auto mb-2 text-muted-foreground/70" />
+                                <p className="text-muted-foreground text-[10px] font-mono">
+                                  {isP2pDragActive ? "DROP FILE HERE" : "drop or click to select"}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          <Button 
+                            className="w-full rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] uppercase h-10"
+                            disabled={!p2pSelectedFile}
+                            onClick={startP2pSending}
+                            data-testid="btn-p2p-start-send"
+                          >
+                            <Zap size={14} className="mr-2" />
+                            Start P2P Transfer
+                          </Button>
+                        </>
+                      )}
+
+                      {(p2pSendStatus === "connecting" || p2pSendStatus === "connected") && !p2pPeerConnected && (
+                        <div className="space-y-4 text-center">
+                          <div className="flex items-center justify-center gap-2 text-cyan-500">
+                            <Loader2 size={16} className="animate-spin" />
+                            <span className="text-[10px] font-mono uppercase">Waiting for peer...</span>
+                          </div>
+
+                          <div className="p-4 bg-secondary/50 border border-border">
+                            <p className="text-[10px] text-muted-foreground mb-3 font-mono uppercase">Share this code:</p>
+                            <div className="flex items-center justify-center gap-2 mb-4">
+                              <span className="text-2xl font-mono font-bold tracking-widest text-cyan-400">
+                                {p2pRoomCode}
+                              </span>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={copyP2pCode}
+                                data-testid="btn-p2p-copy-code"
+                              >
+                                {p2pCopiedCode ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                              </Button>
+                            </div>
+
+                            <div className="flex justify-center mb-4">
+                              <div className="bg-white p-2 rounded-md">
+                                <QRCodeSVG value={getP2pShareUrl()} size={120} />
+                              </div>
+                            </div>
+
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={copyP2pLink}
+                              className="gap-2 rounded-none font-mono text-[10px]"
+                              data-testid="btn-p2p-copy-link"
+                            >
+                              {p2pCopiedLink ? <Check size={12} /> : <Link2 size={12} />}
+                              Copy Link
+                            </Button>
+                          </div>
+
+                          <Button 
+                            variant="outline" 
+                            onClick={cancelP2pSend}
+                            className="rounded-none font-mono text-[10px]"
+                            data-testid="btn-p2p-cancel-send"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+
+                      {(p2pSendStatus === "transferring" || (p2pSendStatus === "connected" && p2pPeerConnected)) && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileIcon size={14} />
+                              <span className="font-mono text-xs">{p2pSelectedFile?.name}</span>
+                            </div>
+                            <Badge variant={p2pSendProgress?.isRelay ? "secondary" : "default"} className="text-[9px]">
+                              {p2pSendProgress?.isRelay ? (
+                                <><Server size={10} className="mr-1" /> Relay</>
+                              ) : (
+                                <><Wifi size={10} className="mr-1" /> Direct</>
+                              )}
+                            </Badge>
+                          </div>
+
+                          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${p2pSendProgress?.progress || 0}%` }}
+                              className="h-full bg-cyan-500"
+                            />
+                          </div>
+
+                          <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                            <span>
+                              {p2pFormatBytes(p2pSendProgress?.transferred || 0)} / {p2pFormatBytes(p2pSendProgress?.fileSize || 0)}
+                            </span>
+                            <span>{formatSpeed(p2pSendProgress?.speed || 0)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {p2pSendStatus === "completed" && (
+                        <div className="text-center space-y-4">
+                          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                            <Check size={24} className="text-green-500" />
+                          </div>
+                          <h3 className="font-mono text-sm uppercase">Transfer Complete!</h3>
+                          <Button onClick={() => {
+                            setP2pSendStatus("idle");
+                            setP2pSelectedFile(null);
+                            setP2pSendProgress(null);
+                            setP2pRoomCode("");
+                          }} className="rounded-none font-mono text-[10px]" data-testid="btn-p2p-send-another">
+                            Send Another File
+                          </Button>
+                        </div>
+                      )}
+
+                      {p2pSendStatus === "error" && (
+                        <div className="text-center space-y-4">
+                          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                            <WifiOff size={24} className="text-destructive" />
+                          </div>
+                          <h3 className="font-mono text-sm uppercase">Connection Failed</h3>
+                          <Button onClick={cancelP2pSend} className="rounded-none font-mono text-[10px]" data-testid="btn-p2p-retry-send">
+                            Try Again
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* P2P RECEIVE */}
+                  {p2pMode === "receive" && (
+                    <div className="space-y-4">
+                      {p2pReceiveStatus === "idle" && !p2pReceivedFile && (
+                        <>
+                          <div className="text-center py-4">
+                            <Download size={24} className="mx-auto mb-2 text-muted-foreground/70" />
+                            <p className="text-muted-foreground text-[10px] font-mono">
+                              Enter the 6-digit code from sender
+                            </p>
+                          </div>
+
+                          <Input
+                            placeholder="ABC123"
+                            value={p2pReceiveRoomCode}
+                            onChange={(e) => setP2pReceiveRoomCode(e.target.value.toUpperCase())}
+                            className="text-center text-xl font-mono tracking-widest h-12 rounded-none"
+                            maxLength={6}
+                            data-testid="input-p2p-room-code"
+                          />
+
+                          <Button 
+                            className="w-full rounded-none bg-foreground text-background hover:bg-foreground/90 font-mono text-[10px] uppercase h-10"
+                            disabled={p2pReceiveRoomCode.length < 6}
+                            onClick={startP2pReceiving}
+                            data-testid="btn-p2p-start-receive"
+                          >
+                            <Download size={14} className="mr-2" />
+                            Connect & Receive
+                          </Button>
+                        </>
+                      )}
+
+                      {p2pReceiveStatus === "connecting" && (
+                        <div className="text-center space-y-4">
+                          <Loader2 size={32} className="mx-auto animate-spin text-cyan-500" />
+                          <p className="text-muted-foreground text-[10px] font-mono">Connecting to sender...</p>
+                          <Button variant="outline" onClick={cancelP2pReceive} className="rounded-none font-mono text-[10px]" data-testid="btn-p2p-cancel-receive">
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+
+                      {p2pReceiveStatus === "connected" && !p2pReceiveProgress && (
+                        <div className="text-center space-y-4">
+                          <div className="flex items-center justify-center gap-2 text-green-500">
+                            <Wifi size={16} />
+                            <span className="text-[10px] font-mono uppercase">Connected to sender</span>
+                          </div>
+                          <p className="text-muted-foreground text-[10px] font-mono">Waiting for transfer...</p>
+                        </div>
+                      )}
+
+                      {p2pReceiveStatus === "transferring" && p2pReceiveProgress && (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileIcon size={14} />
+                              <span className="font-mono text-xs">{p2pReceiveProgress.fileName}</span>
+                            </div>
+                            <Badge variant={p2pReceiveProgress.isRelay ? "secondary" : "default"} className="text-[9px]">
+                              {p2pReceiveProgress.isRelay ? (
+                                <><Server size={10} className="mr-1" /> Relay</>
+                              ) : (
+                                <><Wifi size={10} className="mr-1" /> Direct</>
+                              )}
+                            </Badge>
+                          </div>
+
+                          <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${p2pReceiveProgress.progress}%` }}
+                              className="h-full bg-cyan-500"
+                            />
+                          </div>
+
+                          <div className="flex justify-between text-[10px] text-muted-foreground font-mono">
+                            <span>
+                              {p2pFormatBytes(p2pReceiveProgress.transferred)} / {p2pFormatBytes(p2pReceiveProgress.fileSize)}
+                            </span>
+                            <span>{formatSpeed(p2pReceiveProgress.speed)}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {(p2pReceiveStatus === "completed" || p2pReceivedFile) && (
+                        <div className="text-center space-y-4">
+                          <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                            <Check size={24} className="text-green-500" />
+                          </div>
+                          <h3 className="font-mono text-sm uppercase">File Received!</h3>
+                          {p2pReceivedFile && (
+                            <>
+                              <p className="text-muted-foreground text-xs font-mono">{p2pReceivedFile.name}</p>
+                              <Button onClick={downloadP2pReceivedFile} className="rounded-none font-mono text-[10px]" data-testid="btn-p2p-download-received">
+                                <Download size={14} className="mr-2" />
+                                Download File
+                              </Button>
+                            </>
+                          )}
+                          <Button 
+                            variant="outline"
+                            onClick={() => {
+                              setP2pReceiveStatus("idle");
+                              setP2pReceiveProgress(null);
+                              setP2pReceivedFile(null);
+                              setP2pReceiveRoomCode("");
+                            }}
+                            className="rounded-none font-mono text-[10px]"
+                            data-testid="btn-p2p-receive-another"
+                          >
+                            Receive Another File
+                          </Button>
+                        </div>
+                      )}
+
+                      {p2pReceiveStatus === "error" && (
+                        <div className="text-center space-y-4">
+                          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
+                            <WifiOff size={24} className="text-destructive" />
+                          </div>
+                          <h3 className="font-mono text-sm uppercase">Connection Failed</h3>
+                          <p className="text-muted-foreground text-[10px] font-mono">
+                            Room not found or host disconnected.
+                          </p>
+                          <Button onClick={cancelP2pReceive} className="rounded-none font-mono text-[10px]" data-testid="btn-p2p-retry-receive">
+                            Try Again
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* P2P Info */}
+                  <div className="pt-4 border-t border-border">
+                    <div className="flex flex-wrap gap-4 text-[9px] text-muted-foreground font-mono">
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        <span>Direct P2P - Fastest</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                        <span>Relay - When direct fails</span>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               )}

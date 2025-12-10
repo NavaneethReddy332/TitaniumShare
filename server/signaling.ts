@@ -144,7 +144,15 @@ export function setupSignaling(server: Server): void {
         }
       } catch (error) {
         console.error("Signaling error:", error);
-        ws.send(JSON.stringify({ type: "error", payload: { message: "Invalid message" } }));
+        // Only send error if websocket is still open
+        if (ws.readyState === WebSocket.OPEN) {
+          const errorMessage = error instanceof SyntaxError 
+            ? "Invalid JSON format" 
+            : error instanceof Error 
+              ? error.message 
+              : "An error occurred";
+          ws.send(JSON.stringify({ type: "error", payload: { message: errorMessage } }));
+        }
       }
     });
 
