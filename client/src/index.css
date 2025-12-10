@@ -139,25 +139,27 @@
     @apply border-zinc-600;
   }
   
-  /* Sidebar Autohide Logic - RIGHT SIDE - positioned within content area */
+  /* Sidebar - Always visible with icons, expand on hover to show labels */
   .sidebar-container {
-    @apply absolute right-0 top-0 bottom-0 w-14 xl:w-36 z-50 transition-transform duration-300 ease-in-out;
-    transform: translateX(90%);
+    @apply absolute right-0 top-0 bottom-0 z-50 transition-all duration-300 ease-in-out;
+    width: 56px;
   }
   
   .sidebar-container:hover {
-    transform: translateX(0);
+    width: 160px;
   }
   
-  @media (min-width: 1280px) {
-    .sidebar-container {
-      transform: translateX(0);
-    }
+  .sidebar-container .sidebar-label {
+    @apply opacity-0 max-w-0 overflow-hidden transition-all duration-300 whitespace-nowrap;
   }
   
-  /* Area to trigger the hover */
+  .sidebar-container:hover .sidebar-label {
+    @apply opacity-100 max-w-[100px];
+  }
+  
+  /* Area to trigger the hover - no longer needed but kept for smooth edge detection */
   .sidebar-trigger-area {
-    @apply absolute right-0 top-0 bottom-0 w-4 z-40 bg-transparent;
+    @apply absolute right-0 top-0 bottom-0 w-2 z-40 bg-transparent;
   }
   
   /* Content wrapper that contains the sidebar */

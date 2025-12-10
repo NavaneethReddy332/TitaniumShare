@@ -291,7 +291,7 @@ function Sidebar({ activeTab, setActiveTab, onLogout, isAuthenticated, onNavigat
                   }`} 
                 />
                 
-                <span className={`text-[10px] font-mono uppercase tracking-widest transition-colors hidden xl:block ${
+                <span className={`sidebar-label text-[10px] font-mono uppercase tracking-widest transition-colors ${
                   hoveredItem === item.id || activeTab === item.id 
                     ? 'text-white' 
                     : 'text-zinc-500'
